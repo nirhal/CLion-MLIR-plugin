@@ -1,0 +1,1 @@
+rootProject.name = "intelliJ-MLIR-plugin"
