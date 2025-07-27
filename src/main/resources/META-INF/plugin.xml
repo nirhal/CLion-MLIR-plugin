@@ -13,8 +13,7 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
-    Enter short description for your plugin here.<br>
-    <em>most HTML tags may be used</em>
+    MLIR syntax highlighting support for IntelliJ IDEA. Provides syntax highlighting for Multi-Level Intermediate Representation (MLIR) files with .mlir extension.
   ]]></description>
 
     <!-- Product and plugin compatibility requirements.
@@ -24,6 +23,20 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <!-- Register MLIR file type -->
+        <fileType name="MLIR"
+                  implementationClass="org.komlir.intellijmlirplugin.MLIRFileType"
+                  fieldName="INSTANCE"
+                  language="MLIR"
+                  extensions="mlir"/>
 
+        <!-- Register syntax highlighter -->
+        <lang.syntaxHighlighterFactory
+                language="MLIR"
+                implementationClass="org.komlir.intellijmlirplugin.MLIRSyntaxHighlighterFactory"/>
+
+        <!-- Register color settings page -->
+        <colorSettingsPage
+                implementation="org.komlir.intellijmlirplugin.MLIRColorSettingsPage"/>
     </extensions>
 </idea-plugin>
