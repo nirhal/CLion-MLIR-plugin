@@ -35,6 +35,11 @@
                 language="MLIR"
                 implementationClass="org.komlir.intellijmlirplugin.MLIRSyntaxHighlighterFactory"/>
 
+        <!-- Register brace matcher -->
+        <lang.braceMatcher
+                language="MLIR"
+                implementationClass="org.komlir.intellijmlirplugin.MLIRBraceMatcher"/>
+
         <!-- Register color settings page -->
         <colorSettingsPage
                 implementation="org.komlir.intellijmlirplugin.MLIRColorSettingsPage"/>
