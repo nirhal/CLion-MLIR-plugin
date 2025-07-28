@@ -55,9 +55,8 @@
                 language="MLIR"
                 implementationClass="org.komlir.intellijmlirplugin.MLIRCommenter"/>
 
-        <!-- Register SSA value reference contributor -->
-        <psi.referenceContributor
+        <lang.findUsagesProvider
                 language="MLIR"
-                implementation="org.komlir.intellijmlirplugin.psi.MLIRReferenceContributor"/>
+                implementationClass="org.komlir.intellijmlirplugin.MLIRFindUsagesProvider" />
     </extensions>
 </idea-plugin>

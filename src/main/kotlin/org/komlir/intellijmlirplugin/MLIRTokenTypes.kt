@@ -1,6 +1,7 @@
 package org.komlir.intellijmlirplugin
 
 import com.intellij.psi.tree.IElementType
+import com.intellij.psi.tree.TokenSet
 
 object MLIRTokenTypes {
     @JvmField val KEYWORD = IElementType("MLIR_KEYWORD", MLIRLanguage)
@@ -22,4 +23,10 @@ object MLIRTokenTypes {
     @JvmField val RBRACKET = IElementType("MLIR_RBRACKET", MLIRLanguage)
     @JvmField val LT = IElementType("MLIR_LT", MLIRLanguage)
     @JvmField val GT = IElementType("MLIR_GT", MLIRLanguage)
+
+    object TokenSets {
+        @JvmField val identifiers = TokenSet.create(IDENTIFIER, SSA_VALUE, SYMBOL_REF, OPERATION)
+        @JvmField val comments = TokenSet.create(LINE_COMMENT)
+        @JvmField val literals = TokenSet.create(STRING_LITERAL, NUMBER)
+    }
 }

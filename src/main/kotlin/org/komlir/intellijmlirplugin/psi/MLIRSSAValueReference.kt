@@ -3,6 +3,7 @@ package org.komlir.intellijmlirplugin.psi
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.util.IncorrectOperationException
+import org.komlir.intellijmlirplugin.MLIRElementFactory
 import org.komlir.intellijmlirplugin.MLIRSSAValueElement
 import org.komlir.intellijmlirplugin.MLIRTokenTypes
 
@@ -37,9 +38,7 @@ class MLIRSSAValueReference(element: MLIRSSAValueElement) : PsiReferenceBase<MLI
 
     @Throws(IncorrectOperationException::class)
     override fun handleElementRename(newElementName: String): PsiElement {
-        // Handle renaming of SSA values
-        // For now, return the current element - full rename support would require more infrastructure
-        return element
+        return element.replace(MLIRElementFactory.createSSAValue(element.project, newElementName))
     }
 
     private fun getSSAValueName(): String? {
@@ -73,7 +72,7 @@ class MLIRSSAValueReference(element: MLIRSSAValueElement) : PsiReferenceBase<MLI
     private fun collectSSAValueDefinitions(file: PsiFile, collector: MutableList<String>) {
         file.accept(object : PsiRecursiveElementVisitor() {
             override fun visitElement(element: PsiElement) {
-                if (element.node?.elementType == MLIRTokenTypes.SSA_VALUE) {
+                if (element is MLIRSSAValueElement) {
                     // Check if this is a definition
                     if (isSSADefinition(element)) {
                         val ssaName = element.text.removePrefix("%")
