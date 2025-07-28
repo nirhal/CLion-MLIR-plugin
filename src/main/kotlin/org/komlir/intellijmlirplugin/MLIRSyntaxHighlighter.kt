@@ -26,9 +26,6 @@ class MLIRSyntaxHighlighter : SyntaxHighlighterBase() {
         @JvmField val LINE_COMMENT = TextAttributesKey.createTextAttributesKey(
             "MLIR_LINE_COMMENT", DefaultLanguageHighlighterColors.LINE_COMMENT
         )
-        @JvmField val BLOCK_COMMENT = TextAttributesKey.createTextAttributesKey(
-            "MLIR_BLOCK_COMMENT", DefaultLanguageHighlighterColors.BLOCK_COMMENT
-        )
         @JvmField val SSA_VALUE = TextAttributesKey.createTextAttributesKey(
             "MLIR_SSA_VALUE", DefaultLanguageHighlighterColors.CONSTANT
         )
@@ -72,7 +69,6 @@ class MLIRSyntaxHighlighter : SyntaxHighlighterBase() {
             MLIRTokenTypes.STRING_LITERAL -> arrayOf(STRING)
             MLIRTokenTypes.NUMBER -> arrayOf(NUMBER)
             MLIRTokenTypes.LINE_COMMENT -> arrayOf(LINE_COMMENT)
-            MLIRTokenTypes.BLOCK_COMMENT -> arrayOf(BLOCK_COMMENT)
             MLIRTokenTypes.SSA_VALUE -> arrayOf(SSA_VALUE)
             MLIRTokenTypes.SYMBOL_REF -> arrayOf(SYMBOL_REF)
             MLIRTokenTypes.ATTRIBUTE -> arrayOf(ATTRIBUTE)

@@ -47,10 +47,6 @@ class MLIRLexer : LexerBase() {
                 consumeLineComment()
                 tokenType = MLIRTokenTypes.LINE_COMMENT
             }
-            char == '/' && currentOffset + 1 < endOffset && buffer[currentOffset + 1] == '*' -> {
-                consumeBlockComment()
-                tokenType = MLIRTokenTypes.BLOCK_COMMENT
-            }
             char == '"' -> {
                 consumeString()
                 tokenType = MLIRTokenTypes.STRING_LITERAL
@@ -82,7 +78,7 @@ class MLIRLexer : LexerBase() {
                     word.matches(Regex("^(i[0-9]+|f16|f32|f64|bf16|index|none)$")) -> MLIRTokenTypes.TYPE
 
                     // MLIR operations (dialect.operation format or standalone operations)
-                    word.contains('.') || word in setOf("module", "func", "return", "call", "br", "cond_br") -> MLIRTokenTypes.OPERATION
+                    word.contains('.') || word in setOf("module", "unrealized_conversion_cast") -> MLIRTokenTypes.OPERATION
 
                     // Complex types (memref, tensor, vector with potential parameters)
                     word in setOf("memref", "tensor", "vector") -> MLIRTokenTypes.TYPE
@@ -126,17 +122,6 @@ class MLIRLexer : LexerBase() {
     private fun consumeLineComment() {
         currentOffset += 2 // Skip //
         while (currentOffset < endOffset && buffer[currentOffset] != '\n') {
-            currentOffset++
-        }
-    }
-
-    private fun consumeBlockComment() {
-        currentOffset += 2 // Skip /*
-        while (currentOffset + 1 < endOffset) {
-            if (buffer[currentOffset] == '*' && buffer[currentOffset + 1] == '/') {
-                currentOffset += 2
-                break
-            }
             currentOffset++
         }
     }

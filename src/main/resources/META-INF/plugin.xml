@@ -43,5 +43,10 @@
         <!-- Register color settings page -->
         <colorSettingsPage
                 implementation="org.komlir.intellijmlirplugin.MLIRColorSettingsPage"/>
+
+        <!-- Register commenter -->
+        <lang.commenter
+                language="MLIR"
+                implementationClass="org.komlir.intellijmlirplugin.MLIRCommenter"/>
     </extensions>
 </idea-plugin>

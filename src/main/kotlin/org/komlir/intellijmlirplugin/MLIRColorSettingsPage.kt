@@ -33,7 +33,6 @@ private val DESCRIPTORS = arrayOf(
     AttributesDescriptor("Number", MLIRSyntaxHighlighter.NUMBER),
     AttributesDescriptor("String", MLIRSyntaxHighlighter.STRING),
     AttributesDescriptor("Line comment", MLIRSyntaxHighlighter.LINE_COMMENT),
-    AttributesDescriptor("Block comment", MLIRSyntaxHighlighter.BLOCK_COMMENT),
     AttributesDescriptor("Operator", MLIRSyntaxHighlighter.OPERATOR),
     AttributesDescriptor("Parentheses", MLIRSyntaxHighlighter.PARENTHESES),
     AttributesDescriptor("Braces", MLIRSyntaxHighlighter.BRACES),
@@ -58,13 +57,11 @@ private val DEMO_TEXT = """
         %sum = arith.addi %val, %c1 : i32
         %result = arith.muli %sum, %c42 : i32
         
-        /* Multi-line comment
-           showing block comment highlighting */
         custom_dialect.my_operation %result {
           attr = #my_attr<"value">
         } : !custom.type
         
-        return %result : i32
+        func.return %result : i32
       }
     }
 """.trimIndent()
