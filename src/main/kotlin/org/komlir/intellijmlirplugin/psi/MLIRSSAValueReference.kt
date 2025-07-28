@@ -1,5 +1,6 @@
 package org.komlir.intellijmlirplugin.psi
 
+import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.util.IncorrectOperationException
@@ -31,7 +32,7 @@ class MLIRSSAValueReference(element: MLIRSSAValueElement) : PsiReferenceBase<MLI
         // Collect all SSA value definitions in the file for code completion
         collectSSAValueDefinitions(file, allSSAValues)
 
-        return allSSAValues.toTypedArray()
+        return allSSAValues.map { LookupElementBuilder.create("%$it").withTypeText("SSA Value") }.toTypedArray()
     }
 
     @Throws(IncorrectOperationException::class)
@@ -89,7 +90,7 @@ class MLIRSSAValueReference(element: MLIRSSAValueElement) : PsiReferenceBase<MLI
         var current: PsiElement? = ssaElement.nextSibling
 
         // Skip whitespace
-        while (current != null && current.node?.elementType == com.intellij.psi.TokenType.WHITE_SPACE) {
+        while (current != null && current.node?.elementType == TokenType.WHITE_SPACE) {
             current = current.nextSibling
         }
 
