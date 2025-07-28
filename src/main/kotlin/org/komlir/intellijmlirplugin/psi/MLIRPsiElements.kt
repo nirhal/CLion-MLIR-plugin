@@ -2,6 +2,7 @@ package org.komlir.intellijmlirplugin.psi
 
 import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.lang.ASTNode
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiReference
@@ -18,7 +19,7 @@ sealed class MLIRElement(node: ASTNode) : ASTWrapperPsiElement(node)
 class MLIRSSAValueElement(node: ASTNode) : MLIRElement(node), PsiNamedElement {
     
     override fun getReference(): PsiReference? {
-        return MLIRSSAValueReference(this)
+        return MLIRSSAValueReference(this, TextRange(0, textLength))
     }
 
     override fun getName(): String? {
@@ -30,3 +31,17 @@ class MLIRSSAValueElement(node: ASTNode) : MLIRElement(node), PsiNamedElement {
     }
 }
 
+class MLIRSymbolElement(node: ASTNode) : MLIRElement(node), PsiNamedElement {
+
+    override fun getReference(): PsiReference? {
+        return MLIRSymbolReference(this, TextRange(0, textLength))
+    }
+
+    override fun getName(): String? {
+        return text?.removePrefix("@")
+    }
+
+    override fun setName(name: String): PsiElement? {
+        return replace(MLIRElementFactory.createSymbol(project, name))
+    }
+}

@@ -10,7 +10,10 @@ import org.komlir.intellijmlirplugin.MLIRTokenTypes
  * Reference implementation for MLIR SSA values
  * Handles navigation from SSA value usage to its definition
  */
-class MLIRSSAValueReference(element: MLIRSSAValueElement) : PsiReferenceBase<MLIRSSAValueElement>(element) {
+class MLIRSSAValueReference(
+    element: MLIRSSAValueElement,
+    range: TextRange
+) : PsiReferenceBase<MLIRSSAValueElement>(element, range) {
 
     override fun getRangeInElement(): TextRange {
         // The range covers the entire SSA value including the % prefix

@@ -11,6 +11,10 @@ object MLIRElementFactory {
         return createFile(project, "%$name = dummy_op").firstChild as MLIRSSAValueElement
     }
 
+    fun createSymbol(project: Project, name: String): PsiElement {
+        return createFile(project, "@$name").firstChild as MLIRSymbolElement
+    }
+
     private fun createFile(
         project: Project,
         dummyText: String
