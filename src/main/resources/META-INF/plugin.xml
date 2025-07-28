@@ -19,6 +19,7 @@
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
 
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
@@ -35,6 +36,11 @@
                 language="MLIR"
                 implementationClass="org.komlir.intellijmlirplugin.MLIRSyntaxHighlighterFactory"/>
 
+        <!-- Register parser definition -->
+        <lang.parserDefinition
+                language="MLIR"
+                implementationClass="org.komlir.intellijmlirplugin.MLIRParserDefinition"/>
+
         <!-- Register brace matcher -->
         <lang.braceMatcher
                 language="MLIR"
@@ -48,5 +54,10 @@
         <lang.commenter
                 language="MLIR"
                 implementationClass="org.komlir.intellijmlirplugin.MLIRCommenter"/>
+
+        <!-- Register SSA value reference contributor -->
+        <psi.referenceContributor
+                language="MLIR"
+                implementation="org.komlir.intellijmlirplugin.psi.MLIRReferenceContributor"/>
     </extensions>
 </idea-plugin>
