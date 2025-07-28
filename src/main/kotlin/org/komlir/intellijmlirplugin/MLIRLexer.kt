@@ -12,16 +12,23 @@ class MLIRLexer : LexerBase() {
     private var tokenType: IElementType? = null
     private var tokenStart: Int = 0
     private var tokenEnd: Int = 0
+    private var angleBracketDepth: Int = 0  // Track depth of nested angle brackets
+
+    companion object {
+        const val STATE_NORMAL = 0
+        const val STATE_IN_ANGLE_BRACKETS = 1
+    }
 
     override fun start(buffer: CharSequence, startOffset: Int, endOffset: Int, initialState: Int) {
         this.buffer = buffer
         this.startOffset = startOffset
         this.endOffset = endOffset
         this.currentOffset = startOffset
+        this.angleBracketDepth = if (initialState == STATE_IN_ANGLE_BRACKETS) 1 else 0
         advance()
     }
 
-    override fun getState(): Int = 0
+    override fun getState(): Int = if (angleBracketDepth > 0) STATE_IN_ANGLE_BRACKETS else STATE_NORMAL
 
     override fun getTokenType(): IElementType? = tokenType
 
@@ -74,16 +81,39 @@ class MLIRLexer : LexerBase() {
             char.isLetter() || char == '_' -> {
                 val word = consumeIdentifier()
                 tokenType = when {
-                    // MLIR built-in types
-                    word.matches(Regex("^(i[0-9]+|f16|f32|f64|bf16|index|none)$")) -> MLIRTokenTypes.TYPE
+                    // Inside angle brackets: prioritize type recognition
+                    angleBracketDepth > 0 -> when {
+                        // MLIR built-in types - expanded regex for comprehensive type matching
+                        word.matches(Regex("^(i[0-9]+|ui[0-9]+|si[0-9]+|f16|f32|f64|bf16|f80|f128|index|none|complex)$")) -> MLIRTokenTypes.TYPE
 
-                    // MLIR operations (dialect.operation format or standalone operations)
-                    word.contains('.') || word in setOf("module", "unrealized_conversion_cast") -> MLIRTokenTypes.OPERATION
+                        // Complex types (memref, tensor, vector) - can be nested
+                        word in setOf("memref", "tensor", "vector") -> MLIRTokenTypes.TYPE
 
-                    // Complex types (memref, tensor, vector with potential parameters)
-                    word in setOf("memref", "tensor", "vector") -> MLIRTokenTypes.TYPE
+                        // Dimension separator 'x' in shaped types
+                        word == "x" -> MLIRTokenTypes.OPERATOR
 
-                    else -> MLIRTokenTypes.IDENTIFIER
+                        // Any other identifier inside angle brackets could be a custom type
+                        word.matches(Regex("^[a-zA-Z][a-zA-Z0-9_]*$")) -> MLIRTokenTypes.TYPE
+
+                        else -> MLIRTokenTypes.IDENTIFIER
+                    }
+
+                    // Outside angle brackets: normal recognition rules
+                    else -> when {
+                        // MLIR built-in types
+                        word.matches(Regex("^(i[0-9]+|ui[0-9]+|si[0-9]+|f16|f32|f64|bf16|f80|f128|index|none|complex)$")) -> MLIRTokenTypes.TYPE
+
+                        // MLIR operations (dialect.operation format or standalone operations)
+                        word.contains('.') || word in setOf("module", "unrealized_conversion_cast") -> MLIRTokenTypes.OPERATION
+
+                        // Complex types (memref, tensor, vector)
+                        word in setOf("memref", "tensor", "vector") -> MLIRTokenTypes.TYPE
+
+                        // Dimension separator 'x' in shaped types (outside angle brackets, it's just an identifier)
+                        word == "x" -> MLIRTokenTypes.IDENTIFIER
+
+                        else -> MLIRTokenTypes.IDENTIFIER
+                    }
                 }
             }
             char in "(){}[]<>" -> {
@@ -95,12 +125,23 @@ class MLIRLexer : LexerBase() {
                     '}' -> MLIRTokenTypes.RBRACE
                     '[' -> MLIRTokenTypes.LBRACKET
                     ']' -> MLIRTokenTypes.RBRACKET
-                    '<' -> MLIRTokenTypes.LT
-                    '>' -> MLIRTokenTypes.GT
+                    '<' -> {
+                        angleBracketDepth++ // Entering angle brackets
+                        MLIRTokenTypes.LT
+                    }
+                    '>' -> {
+                        if (angleBracketDepth > 0) {
+                            angleBracketDepth-- // Exiting angle brackets
+                            MLIRTokenTypes.GT
+                        } else {
+                            currentOffset++
+                            MLIRTokenTypes.GT
+                        }
+                    }
                     else -> MLIRTokenTypes.IDENTIFIER
                 }
             }
-            char in ",:;=+-*/" -> {
+            char in ",:;=+-*/?" -> {
                 currentOffset++
                 tokenType = MLIRTokenTypes.OPERATOR
             }
@@ -204,9 +245,30 @@ class MLIRLexer : LexerBase() {
 
     private fun consumeIdentifier(): String {
         val start = currentOffset
-        while (currentOffset < endOffset && (buffer[currentOffset].isLetterOrDigit() || buffer[currentOffset] in "_.-")) {
-            currentOffset++
+
+        // Special handling inside angle brackets to separate 'x' from following identifiers
+        if (angleBracketDepth > 0) {
+            // First character
+            if (currentOffset < endOffset && (buffer[currentOffset].isLetter() || buffer[currentOffset] == '_')) {
+                currentOffset++
+
+                // If this is just 'x', stop here to allow it to be treated as dimension separator
+                if (currentOffset - start == 1 && buffer[start] == 'x') {
+                    return buffer.subSequence(start, currentOffset).toString()
+                }
+
+                // Continue consuming for other identifiers
+                while (currentOffset < endOffset && (buffer[currentOffset].isLetterOrDigit() || buffer[currentOffset] in "_.-")) {
+                    currentOffset++
+                }
+            }
+        } else {
+            // Normal identifier consumption outside angle brackets
+            while (currentOffset < endOffset && (buffer[currentOffset].isLetterOrDigit() || buffer[currentOffset] in "_.-")) {
+                currentOffset++
+            }
         }
+
         return buffer.subSequence(start, currentOffset).toString()
     }
 
