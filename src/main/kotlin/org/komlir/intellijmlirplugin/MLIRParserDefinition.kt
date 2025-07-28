@@ -11,6 +11,9 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
+import org.komlir.intellijmlirplugin.psi.MLIRElement
+import org.komlir.intellijmlirplugin.psi.MLIRFile
+import org.komlir.intellijmlirplugin.psi.MLIRSSAValueElement
 
 class MLIRParserDefinition : ParserDefinition {
     
@@ -35,7 +38,7 @@ class MLIRParserDefinition : ParserDefinition {
     override fun createElement(node: ASTNode): PsiElement {
         return when (node.elementType) {
             MLIRTokenTypes.SSA_VALUE -> MLIRSSAValueElement(node)
-            else -> MLIRElementImpl(node)
+            else -> error("Unknown element type: ${node.elementType}")
         }
     }
     

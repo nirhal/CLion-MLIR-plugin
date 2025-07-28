@@ -3,8 +3,6 @@ package org.komlir.intellijmlirplugin.psi
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
 import com.intellij.util.IncorrectOperationException
-import org.komlir.intellijmlirplugin.MLIRElementFactory
-import org.komlir.intellijmlirplugin.MLIRSSAValueElement
 import org.komlir.intellijmlirplugin.MLIRTokenTypes
 
 /**

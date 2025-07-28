@@ -5,6 +5,8 @@ import com.intellij.lang.cacheBuilder.WordsScanner
 import com.intellij.lang.findUsages.FindUsagesProvider
 import com.intellij.psi.PsiElement
 import org.jetbrains.annotations.Nls
+import org.komlir.intellijmlirplugin.psi.MLIRElement
+import org.komlir.intellijmlirplugin.psi.MLIRSSAValueElement
 
 
 class MLIRFindUsagesProvider : FindUsagesProvider {
@@ -18,22 +20,19 @@ class MLIRFindUsagesProvider : FindUsagesProvider {
         )
     }
     override fun canFindUsagesFor(element: PsiElement): Boolean {
-        return element is MLIRSSAValueElement
+        return element is MLIRElement
     }
 
-    override fun getType(element: PsiElement): @Nls String = when (element) {
+    override fun getType(element: PsiElement): @Nls String = when (element as MLIRElement) {
         is MLIRSSAValueElement -> "SSA Value"
-        else -> ""
     }
 
-    override fun getDescriptiveName(element: PsiElement): @Nls String = when (element) {
+    override fun getDescriptiveName(element: PsiElement): @Nls String = when (element as MLIRElement) {
         is MLIRSSAValueElement -> element.name ?: "Unnamed SSA Value"
-        else -> element.text
     }
 
-    override fun getNodeText(element: PsiElement, useFullName: Boolean): @Nls String = when (element) {
+    override fun getNodeText(element: PsiElement, useFullName: Boolean): @Nls String = when (element as MLIRElement) {
         is MLIRSSAValueElement -> element.text
-        else -> element.text
     }
 
     override fun getHelpId(element: PsiElement): String? = null

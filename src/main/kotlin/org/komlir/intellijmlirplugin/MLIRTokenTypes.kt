@@ -4,7 +4,6 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 
 object MLIRTokenTypes {
-    @JvmField val KEYWORD = IElementType("MLIR_KEYWORD", MLIRLanguage)
     @JvmField val IDENTIFIER = IElementType("MLIR_IDENTIFIER", MLIRLanguage)
     @JvmField val STRING_LITERAL = IElementType("MLIR_STRING_LITERAL", MLIRLanguage)
     @JvmField val NUMBER = IElementType("MLIR_NUMBER", MLIRLanguage)
