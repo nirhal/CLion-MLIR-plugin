@@ -20,6 +20,7 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.clion</depends>
 
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
@@ -58,5 +59,10 @@
         <lang.findUsagesProvider
                 language="MLIR"
                 implementationClass="org.komlir.intellijmlirplugin.MLIRFindUsagesProvider" />
+
+        <codeInsight.lineMarkerProvider
+                language="MLIR"
+                implementationClass="org.komlir.intellijmlirplugin.MLIRRunLineMarkerProvider"/>
+
     </extensions>
 </idea-plugin>
