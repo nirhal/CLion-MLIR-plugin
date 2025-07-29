@@ -30,6 +30,12 @@ class MLIRParser : PsiParser {
                     builder.advanceLexer()
                     symbolMarker.done(MLIRTokenTypes.SYMBOL_REF)
                 }
+                MLIRTokenTypes.OPERATION -> {
+                    // Create a specific PSI element for symbol references
+                    val symbolMarker = builder.mark()
+                    builder.advanceLexer()
+                    symbolMarker.done(MLIRTokenTypes.OPERATION)
+                }
                 else -> {
                     // For all other tokens, just advance
                     builder.advanceLexer()

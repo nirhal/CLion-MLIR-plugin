@@ -12,6 +12,7 @@ import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
 import org.komlir.intellijmlirplugin.psi.MLIRFile
+import org.komlir.intellijmlirplugin.psi.MLIROperationElement
 import org.komlir.intellijmlirplugin.psi.MLIRSSAValueElement
 import org.komlir.intellijmlirplugin.psi.MLIRSymbolElement
 
@@ -39,6 +40,7 @@ class MLIRParserDefinition : ParserDefinition {
         return when (node.elementType) {
             MLIRTokenTypes.SSA_VALUE -> MLIRSSAValueElement(node)
             MLIRTokenTypes.SYMBOL_REF -> MLIRSymbolElement(node)
+            MLIRTokenTypes.OPERATION -> MLIROperationElement(node)
             else -> error("Unknown element type: ${node.elementType}")
         }
     }

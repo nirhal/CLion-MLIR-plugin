@@ -45,3 +45,16 @@ class MLIRSymbolElement(node: ASTNode) : MLIRElement(node), PsiNamedElement {
         return replace(MLIRElementFactory.createSymbol(project, name))
     }
 }
+
+class MLIROperationElement(node: ASTNode) : MLIRElement(node), PsiNamedElement {
+
+    override fun getReference(): PsiReference? {
+        return MLIROperationReference(this, TextRange(0, textLength))
+    }
+
+    override fun getName(): String? {
+        return text
+    }
+
+    override fun setName(name: String): PsiElement? = null
+}
