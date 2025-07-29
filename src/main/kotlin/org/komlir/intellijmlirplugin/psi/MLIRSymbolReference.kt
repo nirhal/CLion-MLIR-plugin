@@ -24,6 +24,10 @@ class MLIRSymbolReference(
         return matches.map { PsiElementResolveResult(it) }.toTypedArray()
     }
 
+    override fun resolve(): PsiElement? {
+        return multiResolve(false).firstOrNull()?.element
+    }
+
     override fun getVariants(): Array<Any> {
         val file = element.containingFile
         val allSymbols = PsiTreeUtil.findChildrenOfType(file, MLIRSymbolElement::class.java)
