@@ -19,22 +19,29 @@ class MLIRParser : PsiParser {
 
             when (tokenType) {
                 MLIRTokenTypes.SSA_VALUE -> {
-                    // Create a specific PSI element for SSA values
                     val ssaMarker = builder.mark()
                     builder.advanceLexer()
                     ssaMarker.done(MLIRTokenTypes.SSA_VALUE)
                 }
                 MLIRTokenTypes.SYMBOL_REF -> {
-                    // Create a specific PSI element for symbol references
                     val symbolMarker = builder.mark()
                     builder.advanceLexer()
                     symbolMarker.done(MLIRTokenTypes.SYMBOL_REF)
                 }
                 MLIRTokenTypes.OPERATION -> {
-                    // Create a specific PSI element for symbol references
                     val symbolMarker = builder.mark()
                     builder.advanceLexer()
                     symbolMarker.done(MLIRTokenTypes.OPERATION)
+                }
+                MLIRTokenTypes.TYPE -> {
+                    val symbolMarker = builder.mark()
+                    builder.advanceLexer()
+                    symbolMarker.done(MLIRTokenTypes.TYPE)
+                }
+                MLIRTokenTypes.ATTRIBUTE -> {
+                    val symbolMarker = builder.mark()
+                    builder.advanceLexer()
+                    symbolMarker.done(MLIRTokenTypes.ATTRIBUTE)
                 }
                 else -> {
                     // For all other tokens, just advance

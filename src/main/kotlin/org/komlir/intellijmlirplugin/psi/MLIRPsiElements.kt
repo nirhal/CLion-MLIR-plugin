@@ -58,3 +58,29 @@ class MLIROperationElement(node: ASTNode) : MLIRElement(node), PsiNamedElement {
 
     override fun setName(name: String): PsiElement? = null
 }
+
+class MLIRTypeElement(node: ASTNode) : MLIRElement(node), PsiNamedElement {
+
+    override fun getReference(): PsiReference? {
+        return MLIRTypeReference(this, TextRange(0, textLength))
+    }
+
+    override fun getName(): String? {
+        return text
+    }
+
+    override fun setName(name: String): PsiElement? = null
+}
+
+class MLIRAttributeElement(node: ASTNode) : MLIRElement(node), PsiNamedElement {
+
+    override fun getReference(): PsiReference? {
+        return MLIRAttributeReference(this, TextRange(0, textLength))
+    }
+
+    override fun getName(): String? {
+        return text
+    }
+
+    override fun setName(name: String): PsiElement? = null
+}

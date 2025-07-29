@@ -11,10 +11,12 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
+import org.komlir.intellijmlirplugin.psi.MLIRAttributeElement
 import org.komlir.intellijmlirplugin.psi.MLIRFile
 import org.komlir.intellijmlirplugin.psi.MLIROperationElement
 import org.komlir.intellijmlirplugin.psi.MLIRSSAValueElement
 import org.komlir.intellijmlirplugin.psi.MLIRSymbolElement
+import org.komlir.intellijmlirplugin.psi.MLIRTypeElement
 
 class MLIRParserDefinition : ParserDefinition {
     
@@ -41,6 +43,8 @@ class MLIRParserDefinition : ParserDefinition {
             MLIRTokenTypes.SSA_VALUE -> MLIRSSAValueElement(node)
             MLIRTokenTypes.SYMBOL_REF -> MLIRSymbolElement(node)
             MLIRTokenTypes.OPERATION -> MLIROperationElement(node)
+            MLIRTokenTypes.TYPE -> MLIRTypeElement(node)
+            MLIRTokenTypes.ATTRIBUTE -> MLIRAttributeElement(node)
             else -> error("Unknown element type: ${node.elementType}")
         }
     }
