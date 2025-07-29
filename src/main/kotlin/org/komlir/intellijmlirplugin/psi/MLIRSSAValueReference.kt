@@ -3,39 +3,29 @@ package org.komlir.intellijmlirplugin.psi
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.IncorrectOperationException
 import org.komlir.intellijmlirplugin.MLIRTokenTypes
 
-/**
- * Reference implementation for MLIR SSA values
- * Handles navigation from SSA value usage to its definition
- */
 class MLIRSSAValueReference(
     element: MLIRSSAValueElement,
     range: TextRange
 ) : PsiReferenceBase<MLIRSSAValueElement>(element, range) {
 
-    override fun getRangeInElement(): TextRange {
-        // The range covers the entire SSA value including the % prefix
-        return TextRange(0, element.textLength)
-    }
-
     override fun resolve(): MLIRSSAValueElement? {
-        val ssaValueName = getSSAValueName() ?: return null
+        val ssaValueName = element.name ?: return null
         val file = element.containingFile
-
-        // Find the definition of this SSA value in the file
-        return findSSAValueDefinition(file, ssaValueName)
+        return PsiTreeUtil.findChildrenOfType(file, MLIRSSAValueElement::class.java).firstOrNull {
+            it.name == ssaValueName && it.isSSADefinition()
+        }
     }
 
     override fun getVariants(): Array<Any> {
         val file = element.containingFile
-        val allSSAValues = mutableListOf<String>()
-
-        // Collect all SSA value definitions in the file for code completion
-        collectSSAValueDefinitions(file, allSSAValues)
-
-        return allSSAValues.map { LookupElementBuilder.create("%$it").withTypeText("SSA Value") }.toTypedArray()
+        val allSSAValues = PsiTreeUtil.findChildrenOfType(file, MLIRSSAValueElement::class.java).filter {
+            it.isSSADefinition()
+        }
+        return allSSAValues.map { LookupElementBuilder.create("%${it.name}").withTypeText("SSA Value") }.toTypedArray()
     }
 
     @Throws(IncorrectOperationException::class)
@@ -43,54 +33,9 @@ class MLIRSSAValueReference(
         return element.replace(MLIRElementFactory.createSSAValue(element.project, newElementName))
     }
 
-    private fun getSSAValueName(): String? {
-        return element.text?.removePrefix("%")
-    }
-
-    private fun findSSAValueDefinition(file: PsiFile, ssaValueName: String): MLIRSSAValueElement? {
-        var result: MLIRSSAValueElement? = null
-        val targetText = "%$ssaValueName"
-
-        file.accept(object : PsiRecursiveElementVisitor() {
-            override fun visitElement(element: PsiElement) {
-                // Look for SSA value definitions (assignments)
-                // In MLIR, SSA values are defined like: %result = operation(...)
-                if (element is MLIRSSAValueElement) {
-                    if (element.text == targetText) {
-                        // Check if this is a definition (followed by =)
-                        if (isSSADefinition(element) && result == null) {
-                            result = element
-                            return
-                        }
-                    }
-                }
-                super.visitElement(element)
-            }
-        })
-
-        return result
-    }
-
-    private fun collectSSAValueDefinitions(file: PsiFile, collector: MutableList<String>) {
-        file.accept(object : PsiRecursiveElementVisitor() {
-            override fun visitElement(element: PsiElement) {
-                if (element is MLIRSSAValueElement) {
-                    // Check if this is a definition
-                    if (isSSADefinition(element)) {
-                        val ssaName = element.text.removePrefix("%")
-                        if (!collector.contains(ssaName)) {
-                            collector.add(ssaName)
-                        }
-                    }
-                }
-                super.visitElement(element)
-            }
-        })
-    }
-
-    private fun isSSADefinition(ssaElement: PsiElement): Boolean {
+    private fun MLIRSSAValueElement.isSSADefinition(): Boolean {
         // Check if this SSA value is followed by an assignment operator
-        var current: PsiElement? = ssaElement.nextSibling
+        var current: PsiElement? = nextSibling
 
         // Skip whitespace
         while (current != null && current.node?.elementType == TokenType.WHITE_SPACE) {
