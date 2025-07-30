@@ -60,9 +60,16 @@
                 language="MLIR"
                 implementationClass="org.komlir.intellijmlirplugin.MLIRFindUsagesProvider" />
 
-        <codeInsight.lineMarkerProvider
+        <runLineMarkerContributor
                 language="MLIR"
-                implementationClass="org.komlir.intellijmlirplugin.MLIRRunLineMarkerProvider"/>
+                implementationClass="org.komlir.intellijmlirplugin.MLIRRunLineMarkerContributor" />
+
+        <configurationType
+                implementation="org.komlir.intellijmlirplugin.run_configuration.MLIRRunConfigurationType"/>
+
+        <runConfigurationProducer
+                implementation="org.komlir.intellijmlirplugin.MLIRRunConfigurationProducer"/>
+
 
     </extensions>
 </idea-plugin>
