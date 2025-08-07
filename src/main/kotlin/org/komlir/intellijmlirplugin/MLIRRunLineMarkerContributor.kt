@@ -5,11 +5,11 @@ import com.intellij.execution.lineMarker.RunLineMarkerContributor
 import com.intellij.icons.AllIcons
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
+import org.komlir.intellijmlirplugin.run_configuration.RunCommandParser
 
 class MLIRRunLineMarkerContributor : RunLineMarkerContributor() {
 
     override fun getInfo(element: PsiElement): Info? {
-        // Decide if this element represents something runnable
         if (!isRunCommand(element)) return null
 
         val fileName = element.containingFile.name
@@ -20,6 +20,6 @@ class MLIRRunLineMarkerContributor : RunLineMarkerContributor() {
     }
 
     private fun isRunCommand(element: PsiElement): Boolean {
-        return element is PsiComment && RunCommandParser.parseCommand(element) != null
+        return element is PsiComment && RunCommandParser.extractCommand(element) != null
     }
 }

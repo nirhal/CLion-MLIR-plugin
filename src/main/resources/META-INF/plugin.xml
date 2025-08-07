@@ -68,7 +68,7 @@
                 implementation="org.komlir.intellijmlirplugin.run_configuration.MLIRRunConfigurationType"/>
 
         <runConfigurationProducer
-                implementation="org.komlir.intellijmlirplugin.MLIRRunConfigurationProducer"/>
+                implementation="org.komlir.intellijmlirplugin.run_configuration.MLIRRunConfigurationProducer"/>
 
 
     </extensions>

@@ -1,35 +1,42 @@
 package org.komlir.intellijmlirplugin.run_configuration
 
+import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.options.SettingsEditor
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import org.komlir.intellijmlirplugin.run_configuration.MLIRRunConfiguration
 import java.awt.GridLayout
+import javax.swing.JCheckBox
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
-import javax.swing.JTextField
 
 class MLIRRunConfigurationEditor : SettingsEditor<MLIRRunConfiguration>() {
-    private val commandField = JTextField()
-    private val dirField = JTextField()
-    private val panel = JPanel(GridLayout(2, 2))
+    private val fileField = TextFieldWithBrowseButton()
+    private val showAllProcessesOutputField = JCheckBox("Show all processes outputs")
+    private val panel = JPanel(GridLayout(3, 1))
 
     init {
-        panel.add(JLabel("Working Directory:"))
-        panel.add(dirField)
-        panel.add(JLabel("Command:"))
-        panel.add(commandField)
+        panel.add(JLabel("File:"))
+        panel.add(fileField)
+        panel.add(showAllProcessesOutputField)
     }
 
     override fun resetEditorFrom(s: MLIRRunConfiguration) {
-        commandField.text = s.command
-        dirField.text = s.workingDir
+        fileField.text = s.file ?: ""
+        showAllProcessesOutputField.isSelected = s.showAllProcessesOutput
     }
 
     override fun applyEditorTo(s: MLIRRunConfiguration) {
-        s.command = commandField.text
-        s.workingDir = dirField.text
+        s.file = fileField.text
+        s.showAllProcessesOutput = showAllProcessesOutputField.isSelected
     }
 
     override fun createEditor(): JComponent {
+        fileField.addBrowseFolderListener(
+            null,
+            FileChooserDescriptor(true, false, false, false, false, false)
+                .withTitle("Select MLIR File"),
+        )
         return panel
     }
 }
