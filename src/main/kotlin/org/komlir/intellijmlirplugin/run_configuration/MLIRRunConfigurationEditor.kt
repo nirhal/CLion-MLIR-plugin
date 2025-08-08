@@ -29,6 +29,7 @@ class MLIRRunConfigurationEditor : SettingsEditor<MLIRRunConfiguration>() {
     override fun applyEditorTo(s: MLIRRunConfiguration) {
         s.file = fileField.text
         s.showAllProcessesOutput = showAllProcessesOutputField.isSelected
+        s.updateSettings()
     }
 
     override fun createEditor(): JComponent {

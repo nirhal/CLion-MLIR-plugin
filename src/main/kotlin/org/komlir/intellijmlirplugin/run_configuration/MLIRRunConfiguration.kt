@@ -15,7 +15,6 @@ import com.jetbrains.cidr.cpp.execution.CMakeRunConfigurationType
 import com.jetbrains.cidr.execution.BuildTargetAndConfigurationData
 import com.jetbrains.cidr.execution.CidrCommandLineState
 import com.jetbrains.cidr.execution.ExecutableData
-import d.L.g.v
 import org.jdom.Element
 
 class MLIRRunConfiguration(
@@ -24,20 +23,12 @@ class MLIRRunConfiguration(
     name: String
 ): CMakeAppRunConfiguration(project, factory, name) {
 
-    private var myFile: String? = null
-
-    var file: String?
-        get() = myFile
-        set(value) {
-            myFile = value
-            updateSettings()
-        }
+    var file: String? = null
     var showAllProcessesOutput: Boolean = false
 
     override fun writeExternal(element: Element) {
         element.setAttribute("MLIR_FILE_PATH", file ?: "")
         element.setAttribute("SHOW_ALL_PROCESSES_OUTPUT", showAllProcessesOutput.toString())
-//        updateSettings()
         super.writeExternal(element)
     }
 
@@ -45,7 +36,6 @@ class MLIRRunConfiguration(
         super.readExternal(element)
         file = element.getAttributeValue("MLIR_FILE_PATH")
         showAllProcessesOutput = element.getAttributeValue("SHOW_ALL_PROCESSES_OUTPUT")?.toBoolean() ?: false
-//        updateSettings()
     }
 
     override fun clone(): RunConfiguration {
@@ -58,7 +48,7 @@ class MLIRRunConfiguration(
 
     var pipeCommands : List<RunCommandParser.Command> = listOf()
 
-    private fun updateSettings(): Boolean {
+    fun updateSettings(): Boolean {
         val virtualFile = LocalFileSystem.getInstance().findFileByPath(file ?: return false) ?: return false
         val psiFile = PsiManager.getInstance(project).findFile(virtualFile) ?: return false
         val parseResult =
@@ -85,6 +75,7 @@ class MLIRRunConfiguration(
     }
 
     override fun getState(executor: Executor, env: ExecutionEnvironment): CommandLineState? {
+        updateSettings()
         return CidrCommandLineState(env, MLIRCMakeLauncher(env, this))
     }
 
