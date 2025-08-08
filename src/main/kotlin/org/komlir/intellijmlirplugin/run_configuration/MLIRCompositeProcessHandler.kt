@@ -11,9 +11,10 @@ import java.util.concurrent.atomic.AtomicInteger
 class MLIRCompositeProcessHandler(val handlers: List<ProcessHandler>, val showAllProcessesOutput: Boolean) : ProcessHandler() {
     private val terminatedCount = AtomicInteger()
 
-    private inner class EachListener(val showStdOut: Boolean) : ProcessAdapter() {
+    private inner class EachListener(val showStdOut: Boolean, val showSystem: Boolean) : ProcessAdapter() {
 
         override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
+            if (!showSystem && outputType == ProcessOutputType.SYSTEM) return
             if (showStdOut || outputType != ProcessOutputType.STDOUT || showAllProcessesOutput) {
                 this@MLIRCompositeProcessHandler.notifyTextAvailable(event.text, outputType)
             }
@@ -30,7 +31,7 @@ class MLIRCompositeProcessHandler(val handlers: List<ProcessHandler>, val showAl
     init {
         assert(handlers.isNotEmpty())
         handlers.forEachIndexed { i, handler ->
-            handler.addProcessListener(EachListener(i == handlers.lastIndex))
+            handler.addProcessListener(EachListener(i == handlers.lastIndex, i == 0))
         }
     }
 

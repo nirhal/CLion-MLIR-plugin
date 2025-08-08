@@ -28,7 +28,6 @@ class MLIRCMakeLauncher(
             val nextHandler = handlers.getOrNull(idx + 1)
             handler.addProcessListener(object : ProcessAdapter() {
                 override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
-                    super.onTextAvailable(event, outputType)
                     if (outputType == ProcessOutputType.STDOUT && nextHandler != null) {
                         nextHandler.processInput?.write(event.text.encodeToByteArray())
                         nextHandler.processInput?.flush()
