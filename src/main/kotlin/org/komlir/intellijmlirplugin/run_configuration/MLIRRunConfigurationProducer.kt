@@ -23,8 +23,7 @@ class MLIRRunConfigurationProducer : LazyRunConfigurationProducer<MLIRRunConfigu
         val file = element.containingFile.virtualFile
         configuration.name = file.name
         configuration.file = file.canonicalPath
-        configuration.updateSettings()
-        return true
+        return configuration.updateSettings()
     }
 
     override fun isConfigurationFromContext(
