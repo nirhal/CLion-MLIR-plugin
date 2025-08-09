@@ -26,7 +26,7 @@ class MLIRCMakeLauncher(
     private fun pipeAllHandlers(handlers: List<ProcessHandler>) {
         handlers.forEachIndexed { idx, handler ->
             val nextHandler = handlers.getOrNull(idx + 1)
-            handler.addProcessListener(object : ProcessAdapter() {
+            handler.addProcessListener(object : ProcessListener {
                 override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
                     if (outputType == ProcessOutputType.STDOUT && nextHandler != null) {
                         nextHandler.processInput?.write(event.text.encodeToByteArray())
@@ -58,7 +58,7 @@ class MLIRCMakeLauncher(
         val handlers = listOf(mainProcessHandler) + pipedHandlers
         pipeAllHandlers(handlers)
         if (pipedHandlers.isNotEmpty()) {
-            pipedHandlers.last().addProcessListener(object : ProcessAdapter() {
+            pipedHandlers.last().addProcessListener(object : ProcessListener {
                 override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
                     val targetOutputType = when(outputType) {
                         ProcessOutputType.STDERR -> ProcessOutputType.STDERR
@@ -69,7 +69,7 @@ class MLIRCMakeLauncher(
                 }
             })
         }
-        mainProcessHandler.addProcessListener(object : ProcessAdapter() {
+        mainProcessHandler.addProcessListener(object : ProcessListener {
             override fun startNotified(event: ProcessEvent) {
                 pipedHandlers.forEach { it.startNotify() }
             }

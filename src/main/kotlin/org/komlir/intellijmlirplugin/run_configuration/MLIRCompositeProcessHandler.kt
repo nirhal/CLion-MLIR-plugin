@@ -1,8 +1,8 @@
 package org.komlir.intellijmlirplugin.run_configuration
 
-import com.intellij.execution.process.ProcessAdapter
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessHandler
+import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessOutputType
 import com.intellij.openapi.util.Key
 import java.io.OutputStream
@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class MLIRCompositeProcessHandler(val handlers: List<ProcessHandler>, val showAllProcessesOutput: Boolean) : ProcessHandler() {
     private val terminatedCount = AtomicInteger()
 
-    private inner class EachListener(val showStdOut: Boolean, val showSystem: Boolean) : ProcessAdapter() {
+    private inner class EachListener(val showStdOut: Boolean, val showSystem: Boolean) : ProcessListener {
 
         override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
             if (!showSystem && outputType == ProcessOutputType.SYSTEM) return

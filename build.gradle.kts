@@ -20,10 +20,10 @@ repositories {
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {
     intellijPlatform {
-        create("CL", "2025.1")
+        create("CL", "2025.2")
         testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
 
-        bundledPlugin("com.intellij.cidr.base")
+        bundledPlugin("com.intellij.clion.cmake")
         bundledPlugin("com.intellij.nativeDebug")
         bundledPlugin("org.jetbrains.plugins.terminal")
     }
