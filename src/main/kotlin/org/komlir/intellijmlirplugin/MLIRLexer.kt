@@ -130,13 +130,8 @@ class MLIRLexer : LexerBase() {
                         MLIRTokenTypes.LT
                     }
                     '>' -> {
-                        if (angleBracketDepth > 0) {
-                            angleBracketDepth-- // Exiting angle brackets
-                            MLIRTokenTypes.GT
-                        } else {
-                            currentOffset++
-                            MLIRTokenTypes.GT
-                        }
+                        if (angleBracketDepth > 0) angleBracketDepth-- // Exiting angle brackets
+                        MLIRTokenTypes.GT
                     }
                     else -> MLIRTokenTypes.IDENTIFIER
                 }
