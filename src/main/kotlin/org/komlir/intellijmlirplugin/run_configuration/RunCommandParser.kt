@@ -24,7 +24,7 @@ object RunCommandParser {
 
     fun searchCommand(element: PsiElement): String? {
         if (element is PsiComment) return extractCommand(element)
-        return PsiTreeUtil.findChildrenOfType(element, PsiComment::class.java).firstNotNullOf {
+        return PsiTreeUtil.findChildrenOfType(element, PsiComment::class.java).firstNotNullOfOrNull {
             extractCommand(it)
         }
     }
