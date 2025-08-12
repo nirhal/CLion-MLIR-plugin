@@ -1,0 +1,16 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+
+        <runLineMarkerContributor
+                language="MLIR"
+                implementationClass="org.komlir.intellijmlirplugin.MLIRRunLineMarkerContributor" />
+
+        <configurationType
+                implementation="org.komlir.intellijmlirplugin.run_configuration.MLIRRunConfigurationType"/>
+
+        <runConfigurationProducer
+                implementation="org.komlir.intellijmlirplugin.run_configuration.MLIRRunConfigurationProducer"/>
+
+
+    </extensions>
+</idea-plugin>

@@ -36,7 +36,7 @@ intellijPlatform {
         }
 
         changeNotes = """
-      Initial version
+      - CLion dependency is now optional, allowing the plugin to be used in other IntelliJ-based IDEs.
     """.trimIndent()
     }
 }

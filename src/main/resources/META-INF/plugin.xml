@@ -20,7 +20,7 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.lang</depends>
-    <depends>com.intellij.modules.clion</depends>
+    <depends optional="true" config-file="org.komlir.intelliJ-MLIR-plugin-withCLion.xml">com.intellij.modules.clion</depends>
 
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
@@ -59,17 +59,6 @@
         <lang.findUsagesProvider
                 language="MLIR"
                 implementationClass="org.komlir.intellijmlirplugin.MLIRFindUsagesProvider" />
-
-        <runLineMarkerContributor
-                language="MLIR"
-                implementationClass="org.komlir.intellijmlirplugin.MLIRRunLineMarkerContributor" />
-
-        <configurationType
-                implementation="org.komlir.intellijmlirplugin.run_configuration.MLIRRunConfigurationType"/>
-
-        <runConfigurationProducer
-                implementation="org.komlir.intellijmlirplugin.run_configuration.MLIRRunConfigurationProducer"/>
-
 
     </extensions>
 </idea-plugin>
