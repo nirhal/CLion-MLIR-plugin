@@ -5,6 +5,7 @@ import com.intellij.execution.actions.LazyRunConfigurationProducer
 import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
+import org.komlir.intellijmlirplugin.MLIRLanguage
 
 class MLIRRunConfigurationProducer : LazyRunConfigurationProducer<MLIRRunConfiguration>() {
 
@@ -17,9 +18,9 @@ class MLIRRunConfigurationProducer : LazyRunConfigurationProducer<MLIRRunConfigu
         context: ConfigurationContext,
         sourceElement: Ref<PsiElement?>
     ): Boolean {
-
         val element = context.psiLocation ?: return false
         if (element.containingFile == null) return false
+        if (element.containingFile.language != MLIRLanguage) return false
         val file = element.containingFile.virtualFile
         configuration.name = file.name
         configuration.file = file.canonicalPath
