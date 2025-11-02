@@ -140,6 +140,18 @@ class MLIRLexer : LexerBase() {
                 currentOffset++
                 tokenType = MLIRTokenTypes.OPERATOR
             }
+            char == '.' -> {
+                currentOffset++
+                tokenType = when {
+                    currentOffset < endOffset - 1 && buffer[currentOffset] == char && buffer[currentOffset + 1] == char -> {
+                        currentOffset += 2
+                        MLIRTokenTypes.ELLISPIS
+                    }
+                    else -> {
+                        TokenType.BAD_CHARACTER
+                    }
+                }
+            }
             else -> {
                 currentOffset++
                 tokenType = TokenType.BAD_CHARACTER

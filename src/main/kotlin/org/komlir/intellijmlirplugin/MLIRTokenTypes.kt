@@ -22,6 +22,7 @@ object MLIRTokenTypes {
     @JvmField val RBRACKET = IElementType("MLIR_RBRACKET", MLIRLanguage)
     @JvmField val LT = IElementType("MLIR_LT", MLIRLanguage)
     @JvmField val GT = IElementType("MLIR_GT", MLIRLanguage)
+    @JvmField val ELLISPIS = IElementType("MLIR_ELLIPSIS", MLIRLanguage)
 
     object TokenSets {
         @JvmField val identifiers = TokenSet.create(IDENTIFIER, SSA_VALUE, SYMBOL_REF, OPERATION)
