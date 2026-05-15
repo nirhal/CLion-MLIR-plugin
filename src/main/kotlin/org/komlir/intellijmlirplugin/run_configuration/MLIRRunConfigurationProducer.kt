@@ -10,7 +10,7 @@ import org.komlir.intellijmlirplugin.MLIRLanguage
 class MLIRRunConfigurationProducer : LazyRunConfigurationProducer<MLIRRunConfiguration>() {
 
     override fun getConfigurationFactory(): ConfigurationFactory {
-        return MLIRRunConfigurationType().factory
+        return MLIRRunConfigurationType().getFactory()
     }
 
     override fun setupConfigurationFromContext(
