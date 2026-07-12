@@ -14,7 +14,7 @@ class MLIRRunConfigurationType() : CMakeRunConfigurationType(
     "MLIR_RUN_CONFIGURATION",
     "MLIR File",
     "Runs MLIR files",
-    NotNullLazyValue<Icon>.createConstantValue(MLIRIcons.FILE)
+    NotNullLazyValue.createConstantValue(MLIRIcons.FILE)
 ) {
 
     override fun getIcon(): Icon? = MLIRIcons.FILE
@@ -26,7 +26,7 @@ class MLIRRunConfigurationType() : CMakeRunConfigurationType(
         return MLIRRunConfiguration(project, configurationFactory, "MLIR Run Configuration")
     }
 
-    override fun createEditor(p0: Project): SettingsEditor<out CMakeAppRunConfiguration?>? {
+    override fun createEditor(p0: Project): SettingsEditor<out CMakeAppRunConfiguration> {
         return MLIRRunConfigurationEditor()
     }
 
