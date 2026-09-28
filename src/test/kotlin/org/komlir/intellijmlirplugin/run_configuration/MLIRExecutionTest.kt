@@ -10,12 +10,15 @@ import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.execution.executors.DefaultRunExecutor
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder
-import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
+import com.intellij.execution.filters.OpenFileHyperlinkInfo
+import com.intellij.execution.impl.ConsoleViewImpl
+import com.intellij.execution.impl.EditorHyperlinkSupport
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.testFramework.PlatformTestUtil
 import com.jetbrains.cidr.execution.CidrRunProfile
+import com.jetbrains.cidr.execution.CidrPathWithOffsetConsoleFilter
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
@@ -25,13 +28,13 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class MLIRExecutionTest : BasePlatformTestCase() {
     private class StubProcess(private val code: Int = 0, private val output: String = "", private val hold: Boolean = false,
-        private val brokenInput: Boolean = false) : ProcessHandler() {
+        private val brokenInput: Boolean = false, private val outputType: Key<*> = ProcessOutputType.STDOUT) : ProcessHandler() {
         val input = ByteArrayOutputStream()
         val running = CountDownLatch(1)
         override fun startNotify() {
             super.startNotify()
             running.countDown()
-            if (output.isNotEmpty()) notifyTextAvailable(output, ProcessOutputType.STDOUT)
+            if (output.isNotEmpty()) notifyTextAvailable(output, outputType)
             if (!hold) notifyProcessTerminated(code)
         }
         override fun destroyProcessImpl() = notifyProcessTerminated(130)
@@ -172,10 +175,13 @@ class MLIRExecutionTest : BasePlatformTestCase() {
             configuration.file = virtualFile.path
             for (exitCode in listOf(0, 3)) {
                 val properties = MLIRTestConsoleProperties(configuration, DefaultRunExecutor.getRunExecutorInstance())
-                val console = SMTestRunnerConnectionUtil.createConsole(properties)
+                val console = properties.createTestConsole()
                 Disposer.register(testRootDisposable, console)
                 val file = RunCommandParser.parseComments(listOf(1 to "// RUN: tool"), virtualFile.path)
-                val handler = MLIRTestProcessHandler(file) { StubProcess(exitCode) }
+                val diagnostic = "${virtualFile.path}:93:10: error: CHECK: expected string not found in input\n"
+                val handler = MLIRTestProcessHandler(file) {
+                    StubProcess(exitCode, if (exitCode == 0) "" else diagnostic, outputType = ProcessOutputType.STDERR)
+                }
                 console.attachToProcess(handler)
                 run(handler)
                 val root = console.resultsViewer.testsRootNode
@@ -186,12 +192,45 @@ class MLIRExecutionTest : BasePlatformTestCase() {
                 assertEquals(exitCode == 0, result.isPassed)
                 assertEquals(exitCode != 0, result.isDefect)
                 assertEquals(virtualFile, result.getLocation(project, GlobalSearchScope.allScope(project))?.virtualFile)
+                if (exitCode != 0) {
+                    console.printer.updateOnTestSelected(result)
+                    val textConsole = console.console as ConsoleViewImpl
+                    PlatformTestUtil.waitWithEventsDispatching("Missing FileCheck diagnostic hyperlink", {
+                        textConsole.flushDeferredText()
+                        EditorHyperlinkSupport.get(textConsole.editor!!).hyperlinks.values
+                            .filterIsInstance<OpenFileHyperlinkInfo>().any { it.descriptor?.line == 92 }
+                    }, 10)
+                    val link = EditorHyperlinkSupport.get(textConsole.editor!!).hyperlinks.values
+                        .filterIsInstance<OpenFileHyperlinkInfo>().first { it.descriptor?.line == 92 }
+                    assertEquals(virtualFile, link.virtualFile)
+                    assertEquals(9, link.descriptor!!.column)
+                }
                 val executor = DefaultRunExecutor.getRunExecutorInstance()
                 val environment = ExecutionEnvironmentBuilder.create(project, executor, configuration).build()
                 val rerun = properties.createRerunFailedTestsAction(console).getRunProfileTestAccessor(environment)
                 assertTrue(rerun is CidrRunProfile)
                 assertTrue(environment.runner.canRun(executor.id, rerun!!))
             }
+        } finally {
+            java.nio.file.Files.deleteIfExists(source)
+        }
+    }
+
+    fun testDiagnosticFilterResolvesRelativePathsAndOffsets() {
+        val source = java.nio.file.Files.createTempFile("mlir diagnostic ", ".mlir")
+        try {
+            val file = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(source.toFile())!!
+            val filter = CidrPathWithOffsetConsoleFilter(project, null, source.parent)
+            val line = "./${source.fileName}:93:10: error: CHECK: expected string not found in input\n"
+            val result = filter.applyFilter(line, 100 + line.length)!!.resultItems.single()
+            assertEquals(100, result.highlightStartOffset)
+            assertEquals(100 + "./${source.fileName}:93:10".length, result.highlightEndOffset)
+            val link = result.hyperlinkInfo as OpenFileHyperlinkInfo
+            assertEquals(file, link.virtualFile)
+            assertEquals(92, link.descriptor!!.line)
+            assertEquals(9, link.descriptor!!.column)
+            assertNull(filter.applyFilter("<stdin>:1:2: error\n", 26))
+            assertNull(filter.applyFilter("not a diagnostic\n", 17))
         } finally {
             java.nio.file.Files.deleteIfExists(source)
         }

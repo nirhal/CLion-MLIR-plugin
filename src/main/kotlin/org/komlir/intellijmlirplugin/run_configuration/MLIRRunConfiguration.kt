@@ -20,7 +20,6 @@ import com.jetbrains.cidr.execution.CidrRestartActionProvider
 import com.intellij.execution.ui.ExecutionConsole
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.execution.executors.DefaultDebugExecutor
-import com.intellij.execution.testframework.sm.SMTestRunnerConnectionUtil
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.util.execution.ParametersListUtil
 import com.jetbrains.cidr.execution.ExecutableData
@@ -125,7 +124,7 @@ class MLIRRunConfiguration(
             }
 
             override fun createConsole(executor: Executor): ConsoleView =
-                SMTestRunnerConnectionUtil.createConsole(properties)
+                properties.createTestConsole(firstLauncher.getRunFileAndEnvironment().second)
 
             override fun createRestartAction(console: ExecutionConsole): AnAction =
                 properties.createRerunFailedTestsAction(console as ConsoleView)
