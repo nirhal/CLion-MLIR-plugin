@@ -40,6 +40,7 @@ intellijPlatform {
       - Fix: MLIR run configurations now apply only to MLIR files.
     """.trimIndent()
     }
+    buildSearchableOptions = false
 }
 
 tasks {
@@ -50,5 +51,8 @@ tasks {
     }
     withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
+    }
+    buildSearchableOptions {
+        enabled = false
     }
 }
