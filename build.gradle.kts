@@ -2,8 +2,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "2.1.0"
-    id("org.jetbrains.intellij.platform") version "2.5.0"
+    id("org.jetbrains.kotlin.jvm") version "2.3.0"
+    id("org.jetbrains.intellij.platform") version "2.11.0"
 }
 
 group = "org.komlir"
@@ -20,10 +20,10 @@ repositories {
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {
     intellijPlatform {
-        create("CL", "2025.2")
+        create("CL", "2026.1")
         testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
 
-        bundledPlugin("com.intellij.clion.cmake")
+        bundledPlugin("com.intellij.cmake")
         bundledPlugin("com.intellij.nativeDebug")
         bundledPlugin("org.jetbrains.plugins.terminal")
     }
