@@ -8,18 +8,35 @@ import com.intellij.openapi.util.Key
 import com.intellij.xdebugger.XDebugProcess
 import com.intellij.xdebugger.XDebugSession
 import com.jetbrains.cidr.cpp.execution.CMakeLauncher
+import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
 
 class MLIRCMakeLauncher(
     environment: ExecutionEnvironment,
-    override val configuration: MLIRRunConfiguration
+    override val configuration: MLIRRunConfiguration,
+    private val pipeline: RunCommandParser.Pipeline,
 ): CMakeLauncher(environment, configuration) {
 
+    override fun usePty() = false
+
     private fun createPipedHandlers(): List<KillableProcessHandler> {
-        return configuration.pipeCommands.map { cmd ->
-            val commandLine = GeneralCommandLine(cmd.executable)
-                .withParameters(cmd.arguments)
-                .withWorkDirectory(configuration.workingDirectory)
-            KillableProcessHandler(commandLine)
+        val handlers = mutableListOf<KillableProcessHandler>()
+        try {
+            for (cmd in pipeline.commands.drop(1)) {
+                val commandLine = GeneralCommandLine(cmd.executable)
+                    .withParameters(cmd.arguments)
+                    .withCharset(Charsets.UTF_8)
+                    .withEnvironment(configuration.envs)
+                    .withParentEnvironmentType(if (configuration.isPassParentEnvs) GeneralCommandLine.ParentEnvironmentType.CONSOLE
+                        else GeneralCommandLine.ParentEnvironmentType.NONE)
+                    .withWorkDirectory(configuration.workingDirectory)
+                handlers += KillableProcessHandler(commandLine)
+            }
+            return handlers
+        } catch (e: Exception) {
+            handlers.forEach { it.startNotify(); it.killProcess() }
+            handlers.forEach { it.waitFor() }
+            throw e
         }
     }
 
@@ -29,23 +46,33 @@ class MLIRCMakeLauncher(
             handler.addProcessListener(object : ProcessListener {
                 override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
                     if (outputType == ProcessOutputType.STDOUT && nextHandler != null) {
-                        nextHandler.processInput?.write(event.text.encodeToByteArray())
-                        nextHandler.processInput?.flush()
+                        try {
+                            nextHandler.processInput?.write(event.text.encodeToByteArray())
+                            nextHandler.processInput?.flush()
+                        } catch (e: IOException) {
+                            handler.notifyTextAvailable("Pipeline write failed: ${e.message}\n", ProcessOutputType.STDERR)
+                            handlers.forEach { it.destroyProcess() }
+                        }
                     }
                 }
 
                 override fun processTerminated(event: ProcessEvent) {
-                    nextHandler?.processInput?.close()
+                    try { nextHandler?.processInput?.close() } catch (_: IOException) { }
                 }
             })
         }
     }
     override fun createProcess(state: CommandLineState): ProcessHandler {
         val mainProcessHandler = super.createProcess(state)
-        val pipedHandlers = createPipedHandlers()
-        val handlers = listOf(mainProcessHandler) + pipedHandlers
-        pipeAllHandlers(handlers)
-        return MLIRCompositeProcessHandler(handlers, configuration.showAllProcessesOutput)
+        try {
+            return MLIRCompositeProcessHandler(listOf(mainProcessHandler) + createPipedHandlers(), configuration.showAllProcessesOutput)
+        } catch (e: Exception) {
+            mainProcessHandler.startNotify()
+            if (mainProcessHandler is KillableProcessHandler) mainProcessHandler.killProcess()
+            else mainProcessHandler.destroyProcess()
+            mainProcessHandler.waitFor()
+            throw e
+        }
     }
 
     override fun createDebugProcess(
@@ -54,7 +81,10 @@ class MLIRCMakeLauncher(
     ): XDebugProcess {
         val debugProcess = super.createDebugProcess(state, session)
         val mainProcessHandler = debugProcess.processHandler
-        val pipedHandlers = createPipedHandlers()
+        val pipedHandlers = try { createPipedHandlers() } catch (e: Exception) {
+            mainProcessHandler.destroyProcess()
+            throw e
+        }
         val handlers = listOf(mainProcessHandler) + pipedHandlers
         pipeAllHandlers(handlers)
         if (pipedHandlers.isNotEmpty()) {
@@ -69,19 +99,30 @@ class MLIRCMakeLauncher(
                 }
             })
         }
+        val childrenStarted = AtomicBoolean()
+        fun startChildren() {
+            if (!childrenStarted.compareAndSet(false, true)) return
+            pipedHandlers.asReversed().forEach { it.startNotify() }
+            if (configuration.testFile!!.pipelines.size > 1) {
+                mainProcessHandler.notifyTextAvailable("Debug runs the first RUN directive only. Use Run to test all directives.\n", ProcessOutputType.SYSTEM)
+            }
+        }
         mainProcessHandler.addProcessListener(object : ProcessListener {
             override fun startNotified(event: ProcessEvent) {
-                pipedHandlers.forEach { it.startNotify() }
+                startChildren()
             }
 
             override fun processNotStarted() {
+                startChildren()
                 pipedHandlers.forEach { it.killProcess() }
             }
 
-            override fun processTerminated(event: ProcessEvent) {
-                pipedHandlers.forEach { it.destroyProcess() }
+            override fun processWillTerminate(event: ProcessEvent, willBeDestroyed: Boolean) {
+                if (willBeDestroyed) pipedHandlers.forEach { it.killProcess() }
             }
         })
+
+        if (mainProcessHandler.isStartNotified) startChildren()
 
         return debugProcess
     }
