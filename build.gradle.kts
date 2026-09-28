@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "org.komlir"
-version = "0.1.3"
+version = "0.1.4"
 
 repositories {
     mavenCentral()
@@ -36,8 +36,8 @@ intellijPlatform {
         }
 
         changeNotes = """
-      - CLion dependency is now optional, allowing the plugin to be used in other IntelliJ-based IDEs.
-      - Fix: MLIR run configurations now apply only to MLIR files.
+      - Fix API incompatibility with CLion 2026.1.1.
+      - Add support for the ellipsis token in the MLIR lexer.
     """.trimIndent()
     }
     buildSearchableOptions = false
