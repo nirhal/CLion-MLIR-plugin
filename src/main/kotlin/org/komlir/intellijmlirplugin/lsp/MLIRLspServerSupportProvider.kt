@@ -12,6 +12,7 @@ import com.intellij.psi.util.PsiTreeUtil
 import org.komlir.intellijmlirplugin.MLIRIcons
 import org.komlir.intellijmlirplugin.psi.MLIROperationElement
 import org.komlir.intellijmlirplugin.psi.MLIRTypeElement
+import org.komlir.intellijmlirplugin.psi.MLIRSSAValueElement
 import org.komlir.intellijmlirplugin.psi.MLIROperationCompletionItem
 import com.intellij.codeInsight.lookup.LookupElement
 import org.eclipse.lsp4j.CompletionItem
@@ -37,6 +38,12 @@ internal class MLIRLspServerDescriptor(project: Project, private val command: Ge
         }
 
         override fun getCompletionPrefix(parameters: CompletionParameters, defaultPrefix: String): String {
+            // Immediately after '%', MLIR's insertText omits the sigil. For a
+            // partial name it instead returns the full reference, including '%'.
+            if (defaultPrefix == "%" &&
+                PsiTreeUtil.getParentOfType(parameters.position, MLIRSSAValueElement::class.java, false) != null) {
+                return ""
+            }
             // MLIR returns operation names without the dialect and without a textEdit.
             // Our PSI reference spans the full name; matching/insertion must keep the dialect.
             if (PsiTreeUtil.getParentOfType(parameters.position, MLIROperationElement::class.java, false) != null) {

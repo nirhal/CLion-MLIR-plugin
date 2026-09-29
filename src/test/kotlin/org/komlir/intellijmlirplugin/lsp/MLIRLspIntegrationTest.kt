@@ -149,6 +149,31 @@ class MLIRLspIntegrationTest : BasePlatformTestCase() {
         }
     }
 
+    fun testSSACompletionPreservesPercentOnInsertion() {
+        withServer("// LSP_TEST_ERROR\nmodule {}\n") {
+            PlatformTestUtil.waitWithEventsDispatching("Document was not synchronized to the server", {
+                myFixture.doHighlighting().any { it.description == "MLIR LSP integration diagnostic" }
+            }, 15)
+            for ((prefix, chosen) in listOf("%" to "arg0", "%ar" to "%arg1", "%arg." to "%arg.extra")) {
+                val before = "module {\n  func.func @f(%arg0: i32, %arg1: i32, %arg.extra: i32) -> i32 {\n    return "
+                val after = " : i32\n  }\n}\n"
+                WriteCommandAction.runWriteCommandAction(project) {
+                    myFixture.editor.document.setText("$before$prefix$after")
+                }
+                com.intellij.psi.PsiDocumentManager.getInstance(project).commitAllDocuments()
+                myFixture.editor.caretModel.moveToOffset(before.length + prefix.length)
+                val suggestions = myFixture.completeBasic()
+                if (suggestions != null) {
+                    assertTrue("Missing '$chosen': ${suggestions.map { it.lookupString }}",
+                        suggestions.any { it.lookupString == chosen })
+                    myFixture.lookup.currentItem = suggestions.first { it.lookupString == chosen }
+                    myFixture.finishLookup('\n')
+                }
+                assertEquals("$before%${chosen.removePrefix("%")}$after", myFixture.editor.document.text)
+            }
+        }
+    }
+
     fun testOperationCompletionFallsBackWhenServerDisabled() {
         myFixture.configureByText("fallback.mlir",
             "module {\n  llvm.add\n  llvm.sub\n  llvm.<caret>\n}\n")

@@ -33,6 +33,15 @@ while True:
         position = params["position"]
         text = documents[params["textDocument"]["uri"]]
         before = text.splitlines()[position["line"]][:position["character"]]
+        if re.search(r"%[a-zA-Z0-9_.]*$", before):
+            items = []
+            for name in ["%arg0", "%arg1", "%arg.extra"]:
+                item = {"label": name, "kind": 6, "detail": "i32", "insertTextFormat": 1}
+                if before.endswith("%"):
+                    item["insertText"] = name[1:]
+                items.append(item)
+            send({"id": message["id"], "result": {"isIncomplete": False, "items": items}})
+            continue
         # Match MLIR's suffix-only results (no textEdit or insertText).
         if re.search(r"![a-zA-Z0-9_]*$", before):
             names = ["builtin", "func", "memref"]
