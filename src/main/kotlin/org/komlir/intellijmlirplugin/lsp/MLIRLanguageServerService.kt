@@ -57,7 +57,7 @@ class MLIRLanguageServerService(private val project: Project) : Disposable {
                         MLIRLanguageServerSettings.Source.EXECUTABLE -> MLIRLanguageServerCommand.create(options, project.basePath)
                         MLIRLanguageServerSettings.Source.CMAKE -> (MLIRLanguageServerCMakeSupport.get()
                             ?: error("CMake language server targets require CLion's CMake support."))
-                            .prepare(project, options, build, indicator)
+                            .prepareWithContext(project, options, build, indicator)
                     }
                     indicator.checkCanceled()
                     synchronized(lock) {

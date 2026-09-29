@@ -25,6 +25,43 @@ class MLIRLanguageServerTest : BasePlatformTestCase() {
         finally { super.tearDown() }
     }
 
+    fun testCMakePreparationHasCoroutineJobAndPropagatesCancellation() {
+        val support = object : MLIRLanguageServerCMakeSupport {
+            override fun targets(project: com.intellij.openapi.project.Project) = emptyList<MLIRLanguageServerCMakeSupport.Target>()
+            override fun subscribe(project: com.intellij.openapi.project.Project,
+                                   parent: com.intellij.openapi.Disposable, changed: () -> Unit) = Unit
+            override fun prepare(project: com.intellij.openapi.project.Project,
+                                 options: MLIRLanguageServerSettings.Options, build: Boolean,
+                                 indicator: com.intellij.openapi.progress.ProgressIndicator): GeneralCommandLine {
+                // CidrBuild.execute uses this bridge, which rejects a context without a Job.
+                com.intellij.openapi.progress.blockingContextToIndicator {
+                    assertNotNull(com.intellij.openapi.progress.ProgressManager.getInstance().progressIndicator)
+                }
+                if (build) {
+                    indicator.cancel()
+                    indicator.checkCanceled()
+                }
+                return GeneralCommandLine("mlir-lsp-server")
+            }
+        }
+        // Reproduce preparation from a legacy indicator task, without a parent coroutine Job.
+        com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
+            for (cancel in listOf(false, true)) {
+                val indicator = com.intellij.openapi.progress.EmptyProgressIndicator()
+                var cancelled = false
+                try {
+                    com.intellij.openapi.progress.ProgressManager.getInstance().runProcess({
+                        val command = support.prepareWithContext(project, MLIRLanguageServerSettings.Options(), cancel, indicator)
+                        assertEquals("mlir-lsp-server", command.exePath)
+                    }, indicator)
+                } catch (_: com.intellij.openapi.progress.ProcessCanceledException) {
+                    cancelled = true
+                }
+                assertEquals(cancel, cancelled)
+            }
+        }.get(10, java.util.concurrent.TimeUnit.SECONDS)
+    }
+
     fun testSettingsRoundTripAndEnvironmentIsolation() {
         val options = MLIRLanguageServerSettings.Options(enabled = true, source = MLIRLanguageServerSettings.Source.CMAKE,
             target = "my-lsp", profile = "Debug", arguments = "--log=verbose", buildBeforeStart = true,

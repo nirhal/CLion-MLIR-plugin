@@ -4,6 +4,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.project.Project
 
 /** Optional bridge: the path-based integration never loads CLion classes. */
@@ -19,4 +20,12 @@ interface MLIRLanguageServerCMakeSupport {
             "org.komlir.intelliJ-MLIR-plugin.languageServerCMakeSupport")
         fun get() = EP.extensionList.firstOrNull()
     }
+}
+
+/** CLion's build API requires a Job even when called from a legacy background task. */
+internal fun MLIRLanguageServerCMakeSupport.prepareWithContext(
+    project: Project, options: MLIRLanguageServerSettings.Options,
+    build: Boolean, indicator: ProgressIndicator
+): GeneralCommandLine = runBlockingCancellable {
+    prepare(project, options, build, indicator)
 }
