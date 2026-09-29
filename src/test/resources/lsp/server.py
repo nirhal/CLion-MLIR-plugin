@@ -1,6 +1,9 @@
 """Minimal stdio server for testing the IDE integration, without LLVM binaries."""
 import json
+import re
 import sys
+
+documents = {}
 
 
 def send(message):
@@ -26,15 +29,31 @@ while True:
             "textDocumentSync": 1, "completionProvider": {"triggerCharacters": ["."]},
         }}})
     elif method == "textDocument/completion":
-        # Match MLIR's suffix-only operation results (no textEdit or insertText).
+        params = message["params"]
+        position = params["position"]
+        text = documents[params["textDocument"]["uri"]]
+        before = text.splitlines()[position["line"]][:position["character"]]
+        # Match MLIR's suffix-only results (no textEdit or insertText).
+        if re.search(r"![a-zA-Z0-9_]*$", before):
+            names = ["builtin", "func", "memref"]
+            if "!scalar = f32" in text:
+                names.append("scalar")
+            detail = "type dialect or alias"
+        elif before.endswith(": "):
+            names = ["f32", "f64", "index", "tensor", "memref"]
+            detail = "type"
+        else:
+            names = ["add", "sub", "mul", "intr.sqrt"]
+            detail = "operation"
         send({"id": message["id"], "result": {"isIncomplete": False, "items": [
-            {"label": name, "kind": 5, "detail": "operation", "insertTextFormat": 1}
-            for name in ["add", "sub", "mul", "intr.sqrt"]
+            {"label": name, "kind": 5, "detail": detail, "insertTextFormat": 1}
+            for name in names
         ]}})
     elif method in ("textDocument/didOpen", "textDocument/didChange"):
         params = message["params"]
         document = params["textDocument"]
         text = document["text"] if method.endswith("didOpen") else params["contentChanges"][-1]["text"]
+        documents[document["uri"]] = text
         diagnostics = []
         if "LSP_TEST_ERROR" in text:
             diagnostics.append({

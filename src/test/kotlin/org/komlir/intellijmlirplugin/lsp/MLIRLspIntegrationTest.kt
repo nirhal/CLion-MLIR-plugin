@@ -122,6 +122,33 @@ class MLIRLspIntegrationTest : BasePlatformTestCase() {
         }
     }
 
+    fun testTypeCompletionPreservesSigilAndBuiltinTypes() {
+        withServer("// LSP_TEST_ERROR\nmodule {}\n") {
+            PlatformTestUtil.waitWithEventsDispatching("Document was not synchronized to the server", {
+                myFixture.doHighlighting().any { it.description == "MLIR LSP integration diagnostic" }
+            }, 15)
+            for ((prefix, chosen) in listOf("!" to "builtin", "!bu" to "builtin",
+                "!" to "scalar", "!sc" to "scalar", "" to "f32")) {
+                val before = "!scalar = f32\nmodule {\n  func.func @f(%arg: "
+                val after = ") {}\n}\n"
+                WriteCommandAction.runWriteCommandAction(project) {
+                    myFixture.editor.document.setText("$before$prefix$after")
+                }
+                com.intellij.psi.PsiDocumentManager.getInstance(project).commitAllDocuments()
+                myFixture.editor.caretModel.moveToOffset(before.length + prefix.length)
+                val suggestions = myFixture.completeBasic()
+                if (suggestions != null) {
+                    assertTrue("Missing '$chosen' after '$prefix': ${suggestions.map { it.lookupString }}",
+                        suggestions.any { it.lookupString == chosen })
+                    myFixture.lookup.currentItem = suggestions.first { it.lookupString == chosen }
+                    myFixture.finishLookup('\n')
+                }
+                val sigil = if (prefix.startsWith("!")) "!" else ""
+                assertEquals("$before$sigil$chosen$after", myFixture.editor.document.text)
+            }
+        }
+    }
+
     fun testOperationCompletionFallsBackWhenServerDisabled() {
         myFixture.configureByText("fallback.mlir",
             "module {\n  llvm.add\n  llvm.sub\n  llvm.<caret>\n}\n")

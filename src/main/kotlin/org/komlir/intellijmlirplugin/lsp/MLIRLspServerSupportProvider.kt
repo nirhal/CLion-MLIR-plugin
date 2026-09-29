@@ -11,6 +11,7 @@ import com.intellij.platform.lsp.api.customization.LspCompletionSupport
 import com.intellij.psi.util.PsiTreeUtil
 import org.komlir.intellijmlirplugin.MLIRIcons
 import org.komlir.intellijmlirplugin.psi.MLIROperationElement
+import org.komlir.intellijmlirplugin.psi.MLIRTypeElement
 import org.komlir.intellijmlirplugin.psi.MLIROperationCompletionItem
 import com.intellij.codeInsight.lookup.LookupElement
 import org.eclipse.lsp4j.CompletionItem
@@ -40,6 +41,11 @@ internal class MLIRLspServerDescriptor(project: Project, private val command: Ge
             // Our PSI reference spans the full name; matching/insertion must keep the dialect.
             if (PsiTreeUtil.getParentOfType(parameters.position, MLIROperationElement::class.java, false) != null) {
                 return defaultPrefix.substringAfter('.', defaultPrefix)
+            }
+            // After '!', MLIR returns dialect names and type aliases without the sigil.
+            // Keep it in the document when matching and inserting the chosen result.
+            if (PsiTreeUtil.getParentOfType(parameters.position, MLIRTypeElement::class.java, false) != null) {
+                return defaultPrefix.removePrefix("!")
             }
             return defaultPrefix
         }
