@@ -18,7 +18,7 @@ class MLIRLanguageServerSettings : PersistentStateComponent<MLIRLanguageServerSe
         var workingDirectory: String = "",
         var environment: MutableMap<String, String> = linkedMapOf(),
         var passParentEnvironment: Boolean = true,
-        var buildBeforeStart: Boolean = false,
+        var buildBeforeStart: Boolean = true,
     ) {
         fun snapshot() = copy(environment = LinkedHashMap(environment))
     }

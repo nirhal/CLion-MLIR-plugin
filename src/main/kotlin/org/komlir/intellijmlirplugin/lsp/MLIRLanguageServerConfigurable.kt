@@ -10,6 +10,7 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.util.ui.FormBuilder
+import com.intellij.util.ui.UIUtil
 import javax.swing.*
 
 class MLIRLanguageServerConfigurable(private val project: Project) : SearchableConfigurable {
@@ -42,6 +43,7 @@ class MLIRLanguageServerConfigurable(private val project: Project) : SearchableC
         directory.addBrowseFolderListener(project, FileChooserDescriptorFactory.createSingleFolderDescriptor()
             .withTitle("Language Server Working Directory"))
         refresh.addActionListener { refreshTargets() }
+        enabled.addActionListener { updateControls() }
         source.addActionListener { updateControls() }
         target.addActionListener { refreshProfiles() }
         val restart = JButton("Restart server").apply { addActionListener { applyAndRestart(false) } }
@@ -85,6 +87,8 @@ class MLIRLanguageServerConfigurable(private val project: Project) : SearchableC
     }
 
     private fun updateControls() {
+        panel?.let { UIUtil.setEnabled(it, enabled.isSelected, true) }
+        enabled.isEnabled = true
         val cmake = source.selectedIndex == 0
         listOf(executableLabel, executable).forEach { it.isVisible = !cmake }
         listOf(targetLabel, target, profileLabel, profile, build, refresh, rebuild).forEach { it.isVisible = cmake }
