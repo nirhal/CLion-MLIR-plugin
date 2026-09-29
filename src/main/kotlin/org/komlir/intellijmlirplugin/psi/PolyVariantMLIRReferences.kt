@@ -47,6 +47,10 @@ class MLIROperationReference(
 ) : PolyVariantMLIRReference<MLIROperationElement>(element, range) {
     override val typeText: String = "Operation"
     override val elementClass: Class<MLIROperationElement> = MLIROperationElement::class.java
+
+    override fun getVariants(): Array<Any> = super.getVariants().map {
+        MLIROperationCompletionItem(it as com.intellij.codeInsight.lookup.LookupElement, fromLanguageServer = false)
+    }.toTypedArray()
 }
 
 class MLIRTypeReference(

@@ -22,7 +22,15 @@ while True:
     message = json.loads(sys.stdin.buffer.read(int(headers["content-length"])))
     method = message.get("method")
     if method == "initialize":
-        send({"id": message["id"], "result": {"capabilities": {"textDocumentSync": 1}}})
+        send({"id": message["id"], "result": {"capabilities": {
+            "textDocumentSync": 1, "completionProvider": {"triggerCharacters": ["."]},
+        }}})
+    elif method == "textDocument/completion":
+        # Match MLIR's suffix-only operation results (no textEdit or insertText).
+        send({"id": message["id"], "result": {"isIncomplete": False, "items": [
+            {"label": name, "kind": 5, "detail": "operation", "insertTextFormat": 1}
+            for name in ["add", "sub", "mul", "intr.sqrt"]
+        ]}})
     elif method in ("textDocument/didOpen", "textDocument/didChange"):
         params = message["params"]
         document = params["textDocument"]

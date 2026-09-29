@@ -1,5 +1,7 @@
 <idea-plugin>
     <extensions defaultExtensionNs="com.intellij">
+        <completion.contributor language="MLIR" order="first"
+                                implementationClass="org.komlir.intellijmlirplugin.lsp.MLIRLspCompletionContributor"/>
         <platform.lsp.serverSupportProvider implementation="org.komlir.intellijmlirplugin.lsp.MLIRLspServerSupportProvider"/>
         <projectConfigurable parentId="language" id="mlir.languageServer" displayName="MLIR Language Server"
                              instance="org.komlir.intellijmlirplugin.lsp.MLIRLanguageServerConfigurable"/>

@@ -18,6 +18,81 @@ class MLIRLspIntegrationTest : BasePlatformTestCase() {
     override fun createTempDirTestFixture() = com.intellij.testFramework.fixtures.impl.TempDirTestFixtureImpl()
 
     fun testOpenEditAndDisableWithNativeLspClient() {
+        withServer("// LSP_TEST_ERROR\nmodule {}\n") {
+            PlatformTestUtil.waitWithEventsDispatching("Server diagnostic did not reach the editor", {
+                myFixture.doHighlighting().any { it.description == "MLIR LSP integration diagnostic" }
+            }, 15)
+            WriteCommandAction.runWriteCommandAction(project) { myFixture.editor.document.setText("module {}\n") }
+            PlatformTestUtil.waitWithEventsDispatching("Diagnostic was not cleared after an unsaved edit", {
+                myFixture.doHighlighting().none { it.description == "MLIR LSP integration diagnostic" }
+            }, 15)
+        }
+    }
+
+    fun testOperationCompletionShowsUnseenNamesAndKeepsDialectOnInsertion() {
+        withServer("// LSP_TEST_ERROR\nmodule {}\n") {
+            // Initialization finishes before the IDE has necessarily opened the document on the server.
+            PlatformTestUtil.waitWithEventsDispatching("Document was not synchronized to the server", {
+                myFixture.doHighlighting().any { it.description == "MLIR LSP integration diagnostic" }
+            }, 15)
+            for ((prefix, chosen) in listOf("llvm." to "sub", "llvm.ad" to "add",
+                "llvm.intr." to "intr.sqrt")) {
+                WriteCommandAction.runWriteCommandAction(project) {
+                    myFixture.editor.document.setText("module {\n  $prefix\n}\n")
+                }
+                com.intellij.psi.PsiDocumentManager.getInstance(project).commitAllDocuments()
+                myFixture.editor.caretModel.moveToOffset("module {\n  $prefix".length)
+                val suggestions = myFixture.completeBasic()
+                if (suggestions == null) {
+                    // CLion inserts a unique match automatically for partial names.
+                    assertEquals("module {\n  llvm.$chosen\n}\n", myFixture.editor.document.text)
+                    continue
+                }
+                assertTrue("Missing '$chosen' after '$prefix': ${suggestions.map { it.lookupString }}",
+                    suggestions.any { it.lookupString == chosen })
+                if (prefix == "llvm.") {
+                    assertTrue(suggestions.any { it.lookupString == "add" })
+                    assertTrue(suggestions.any { it.lookupString == "mul" })
+                }
+                myFixture.lookup.currentItem = suggestions.first { it.lookupString == chosen }
+                myFixture.finishLookup('\n')
+                assertEquals("module {\n  llvm.$chosen\n}\n", myFixture.editor.document.text)
+            }
+        }
+    }
+
+    fun testOperationCompletionPrefersServerAndFallsBackForUnmatchedPrefix() {
+        withServer("// LSP_TEST_ERROR\nmodule {}\n") {
+            PlatformTestUtil.waitWithEventsDispatching("Document was not synchronized to the server", {
+                myFixture.doHighlighting().any { it.description == "MLIR LSP integration diagnostic" }
+            }, 15)
+            val existing = "module {\n  llvm.add\n  llvm.fadd\n  llvm.fsub\n  "
+            for (prefix in listOf("llvm.", "llvm.f")) {
+                WriteCommandAction.runWriteCommandAction(project) {
+                    myFixture.editor.document.setText("$existing$prefix\n}\n")
+                }
+                com.intellij.psi.PsiDocumentManager.getInstance(project).commitAllDocuments()
+                myFixture.editor.caretModel.moveToOffset(existing.length + prefix.length)
+                val names = myFixture.completeBasic()!!.map { it.lookupString }
+                if (prefix == "llvm.") {
+                    assertTrue(names.toString(), names.containsAll(listOf("add", "sub", "mul")))
+                    assertFalse(names.toString(), names.any { it.startsWith("llvm.") })
+                } else {
+                    assertTrue(names.toString(), names.containsAll(listOf("llvm.fadd", "llvm.fsub")))
+                }
+                com.intellij.codeInsight.lookup.LookupManager.getInstance(project).hideActiveLookup()
+            }
+        }
+    }
+
+    fun testOperationCompletionFallsBackWhenServerDisabled() {
+        myFixture.configureByText("fallback.mlir",
+            "module {\n  llvm.add\n  llvm.sub\n  llvm.<caret>\n}\n")
+        val names = myFixture.completeBasic()!!.map { it.lookupString }
+        assertTrue(names.toString(), names.containsAll(listOf("llvm.add", "llvm.sub")))
+    }
+
+    private fun withServer(text: String, check: () -> Unit) {
         assumeTrue("Protocol fixture requires Python 3", Files.isExecutable(Path.of("/usr/bin/python3")))
         val script = myFixture.tempDirFixture.createFile("server with spaces.py",
             javaClass.getResource("/lsp/server.py")!!.readText())
@@ -29,7 +104,7 @@ class MLIRLspIntegrationTest : BasePlatformTestCase() {
         val wasTrusted = TrustedProjects.isProjectTrusted(project)
         TrustedProjects.setProjectTrusted(project, true)
         fun servers() = manager.getServersForProvider(MLIRLspServerSupportProvider::class.java)
-        val file = myFixture.addFileToProject("diagnostic.mlir", "// LSP_TEST_ERROR\nmodule {}\n")
+        val file = myFixture.addFileToProject("diagnostic.mlir", text)
         val root = file.virtualFile.parent
         ModuleRootModificationUtil.updateModel(module) { it.addContentEntry(root) }
         try {
@@ -49,13 +124,7 @@ class MLIRLspIntegrationTest : BasePlatformTestCase() {
                 servers().any { it.state == LspServerState.Running }
             }, 15)
             assertEquals(1, servers().count { it.state == LspServerState.Running })
-            PlatformTestUtil.waitWithEventsDispatching("Server diagnostic did not reach the editor", {
-                myFixture.doHighlighting().any { it.description == "MLIR LSP integration diagnostic" }
-            }, 15)
-            WriteCommandAction.runWriteCommandAction(project) { myFixture.editor.document.setText("module {}\n") }
-            PlatformTestUtil.waitWithEventsDispatching("Diagnostic was not cleared after an unsaved edit", {
-                myFixture.doHighlighting().none { it.description == "MLIR LSP integration diagnostic" }
-            }, 15)
+            check()
             settings.state.enabled = false
             lifecycle.restart()
             PlatformTestUtil.waitWithEventsDispatching("Server did not stop when disabled", {
