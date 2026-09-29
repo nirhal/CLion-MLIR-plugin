@@ -103,8 +103,10 @@ class MLIRFolderTest : BasePlatformTestCase() {
 
     fun testFolderResultsNavigateAndRerunOnlyFailedFiles() {
         val first = myFixture.addFileToProject("tests/a/same name.mlir", "// RUN: tool\n").virtualFile
-        val second = myFixture.addFileToProject("tests/b/same name.mlir", "// RUN: tool\n").virtualFile
+        val second = myFixture.addFileToProject("tests/b/deep/same name.mlir", "// RUN: tool\n").virtualFile
         val root = first.parent.parent
+        myFixture.addFileToProject("tests/same name.mlir", "// RUN: tool\n")
+        myFixture.addFileToProject("tests/b/deep/another.mlir", "// RUN: tool\n")
         val tests = MLIRTestDiscovery.discover(project, root.path)
         val config = configuration(root.path)
         val executor = DefaultRunExecutor.getRunExecutorInstance()
@@ -126,13 +128,21 @@ class MLIRFolderTest : BasePlatformTestCase() {
         assertTrue(handler.waitFor(5000))
         val resultRoot = console.resultsViewer.testsRootNode
         PlatformTestUtil.waitWithEventsDispatching("Missing folder results", {
-            resultRoot.children.singleOrNull()?.children?.size == 2 && !resultRoot.isInProgress
+            resultRoot.children.singleOrNull()?.children?.size == 3 && !resultRoot.isInProgress
         }, 10)
-        val results = resultRoot.children.single().children
-        assertTrue(results[0].isPassed)
-        assertTrue(results[1].isDefect)
-        assertEquals(first, results[0].getLocation(project, GlobalSearchScope.allScope(project))?.virtualFile)
-        assertEquals(second, results[1].getLocation(project, GlobalSearchScope.allScope(project))?.virtualFile)
+        val results = resultRoot.children.single().children.associateBy { it.name }
+        assertEquals(setOf("a", "b", "same name.mlir"), results.keys)
+        assertTrue(results.getValue("same name.mlir").isLeaf)
+        val firstResult = results.getValue("a").children.single()
+        val deep = results.getValue("b").children.single()
+        assertEquals("deep", deep.name)
+        assertEquals(setOf("another.mlir", "same name.mlir"), deep.children.map { it.name }.toSet())
+        val secondResult = deep.children.single { it.name == "same name.mlir" }
+        assertEquals("same name.mlir", firstResult.name)
+        assertTrue(firstResult.isPassed)
+        assertTrue(secondResult.isDefect)
+        assertEquals(first, firstResult.getLocation(project, GlobalSearchScope.allScope(project))?.virtualFile)
+        assertEquals(second, secondResult.getLocation(project, GlobalSearchScope.allScope(project))?.virtualFile)
         val env = ExecutionEnvironmentBuilder.create(project, executor, config).build()
         val profile = properties.createRerunFailedTestsAction(console).getRunProfileTestAccessor(env)
             as WrappingRunConfiguration<*>
@@ -141,5 +151,10 @@ class MLIRFolderTest : BasePlatformTestCase() {
         assertNull(config.selectedTestPaths)
         assertEquals(listOf(second.path), MLIRTestDiscovery.discover(project, rerun.file!!,
             rerun.recursive, rerun.selectedTestPaths).map { it.path })
+        val failedPath = second.path
+        com.intellij.openapi.application.WriteAction.run<RuntimeException> { second.delete(this) }
+        val deletedProfile = properties.createRerunFailedTestsAction(console).getRunProfileTestAccessor(env)
+            as WrappingRunConfiguration<*>
+        assertEquals(setOf(failedPath), (deletedProfile.peer as MLIRRunConfiguration).selectedTestPaths)
     }
 }

@@ -30,13 +30,27 @@ class MLIRTestProcessHandler(
 
     private fun runTests() {
         var code = 0
+        fun runFiles(files: List<MLIRTestDiscovery.TestCase>, depth: Int) {
+            for ((name, children) in files.groupBy { it.name.split('/')[depth] }) {
+                if (children.first().name.split('/').size > depth + 1) {
+                    message("testSuiteStarted", "name" to name)
+                    try {
+                        runFiles(children, depth + 1)
+                    } finally {
+                        message("testSuiteFinished", "name" to name)
+                    }
+                } else {
+                    for (test in children) {
+                        val result = runTest(test)
+                        if (code == 0) code = result
+                    }
+                }
+            }
+        }
         try {
             message("testCount", "count" to tests.size.toString())
             suiteName?.let { message("testSuiteStarted", "name" to it) }
-            for (test in tests) {
-                val result = runTest(test)
-                if (code == 0) code = result
-            }
+            runFiles(tests, 0)
         } finally {
             suiteName?.let { message("testSuiteFinished", "name" to it) }
             notifyProcessTerminated(if (cancelled.get()) 130 else code)
@@ -44,11 +58,11 @@ class MLIRTestProcessHandler(
     }
 
     private fun runTest(testCase: MLIRTestDiscovery.TestCase): Int {
-        val testName = testCase.name
+        val testName = testCase.name.substringAfterLast('/')
         val test = testCase.test
         val start = System.nanoTime()
         var code = 0
-        message("testStarted", "name" to testName, "locationHint" to "file://${testCase.path}:${test?.pipelines?.first()?.line ?: 1}")
+        message("testStarted", "name" to testName, "locationHint" to testCase.locationHint)
         try {
             if (!cancelled.get() && testCase.error != null) {
                 code = 1

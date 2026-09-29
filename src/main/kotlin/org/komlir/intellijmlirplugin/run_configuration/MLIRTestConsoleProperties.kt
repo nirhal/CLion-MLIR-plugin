@@ -34,7 +34,7 @@ class MLIRTestConsoleProperties(
         object : AbstractRerunFailedTestsAction(consoleView) {
             override fun getRunProfile(environment: ExecutionEnvironment): MyRunProfile {
                 val paths = getFailedTests(configuration.project).filter { it.isLeaf }.mapNotNull { failed ->
-                    tests.firstOrNull { it.name == failed.name }?.path
+                    tests.firstOrNull { it.locationHint == failed.locationUrl }?.path
                         ?: failed.getLocation(configuration.project, GlobalSearchScope.allScope(configuration.project))?.virtualFile?.path
                 }.toSet()
                 val rerun = configuration.clone() as MLIRRunConfiguration

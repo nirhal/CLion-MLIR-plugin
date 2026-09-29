@@ -14,7 +14,9 @@ import com.intellij.psi.util.PsiTreeUtil
 
 /** Discovery does not require lit configuration or a CMake model. */
 object MLIRTestDiscovery {
-    data class TestCase(val path: String, val name: String, val test: RunCommandParser.TestFile?, val error: String? = null)
+    data class TestCase(val path: String, val name: String, val test: RunCommandParser.TestFile?, val error: String? = null) {
+        val locationHint: String get() = "file://$path:${test?.pipelines?.first()?.line ?: 1}"
+    }
 
     fun discover(project: Project, path: String, recursive: Boolean = true, selectedPaths: Set<String>? = null): List<TestCase> =
         ReadAction.compute<List<TestCase>, RuntimeException> {

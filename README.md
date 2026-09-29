@@ -30,7 +30,7 @@ Supported syntax includes `%s` (the current file, including paths with spaces), 
 // RUN: mlir-opt %s --verify-each
 ```
 
-Each file executes in its own parent directory. The test window groups a folder's results under one suite and labels files with their relative paths, so identical filenames in different subfolders remain distinct. Invalid directives and missing CMake tools appear as failed file tests; other files continue. **Rerun Failed Tests** reruns only the failed files, using their current contents. Saved single-file configurations remain compatible.
+Each file executes in its own parent directory. The test window mirrors the directory hierarchy with expandable subfolder suites and filenames as test leaves, so identical filenames in different subfolders remain distinct. Invalid directives and missing CMake tools appear as failed file tests; other files continue. **Rerun Failed Tests** reruns only the failed files, using their current contents. Saved single-file configurations remain compatible.
 
 Stop cancels the active pipeline and marks remaining files as skipped. Native Debug runs the first directive of a single file and keeps CLion's debugger console. Folder Debug reports that a single file must be selected.
 

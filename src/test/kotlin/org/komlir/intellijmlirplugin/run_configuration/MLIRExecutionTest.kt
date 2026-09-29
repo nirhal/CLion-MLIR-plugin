@@ -128,7 +128,7 @@ class MLIRExecutionTest : BasePlatformTestCase() {
     fun testFolderCancellationSkipsRemainingFiles() {
         val files = (1..3).map { index ->
             val parsed = RunCommandParser.parseComments(listOf(1 to "// RUN: tool"), "/tmp/$index.mlir")
-            MLIRTestDiscovery.TestCase(parsed.path, "$index.mlir", parsed)
+            MLIRTestDiscovery.TestCase(parsed.path, "folder$index/nested/$index.mlir", parsed)
         }
         val active = StubProcess(hold = true)
         val count = AtomicInteger()
@@ -142,7 +142,7 @@ class MLIRExecutionTest : BasePlatformTestCase() {
         assertEquals(130, handler.exitCode)
         assertEquals(3, Regex("##teamcity\\[testIgnored ").findAll(output).count())
         assertFalse(output.contains("testFailed"))
-        assertTrue(output.contains("testSuiteFinished"))
+        assertEquals(7, Regex("##teamcity\\[testSuiteFinished ").findAll(output).count())
     }
 
     fun testCancellationStopsActivePipelineAndRemainingDirectives() {
