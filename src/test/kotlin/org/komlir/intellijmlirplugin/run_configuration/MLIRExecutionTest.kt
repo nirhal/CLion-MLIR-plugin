@@ -106,6 +106,45 @@ class MLIRExecutionTest : BasePlatformTestCase() {
         assertTrue(output.contains("testFinished"))
     }
 
+    fun testFolderContinuesAfterInvalidTestAndPipelineFailure() {
+        val files = (1..3).map { index ->
+            val parsed = RunCommandParser.parseComments((1..2).map { it to "// RUN: tool" }, "/tmp/$index.mlir")
+            MLIRTestDiscovery.TestCase(parsed.path, "$index.mlir", parsed)
+        }
+        val tests = listOf(files[0].copy(test = null, error = "Invalid directive")) + files.drop(1)
+        val launched = mutableListOf<String>()
+        val handler = MLIRTestProcessHandler(tests, "folder") { test, _ ->
+            launched += test.name
+            StubProcess(if (test.name == "2.mlir") 7 else 0)
+        }
+        val output = run(handler)
+        assertEquals(listOf("2.mlir", "3.mlir", "3.mlir"), launched)
+        assertEquals(1, handler.exitCode)
+        assertEquals(2, Regex("##teamcity\\[testFailed ").findAll(output).count())
+        assertEquals(3, Regex("##teamcity\\[testFinished ").findAll(output).count())
+        assertTrue(output.contains("testSuiteFinished"))
+    }
+
+    fun testFolderCancellationSkipsRemainingFiles() {
+        val files = (1..3).map { index ->
+            val parsed = RunCommandParser.parseComments(listOf(1 to "// RUN: tool"), "/tmp/$index.mlir")
+            MLIRTestDiscovery.TestCase(parsed.path, "$index.mlir", parsed)
+        }
+        val active = StubProcess(hold = true)
+        val count = AtomicInteger()
+        val handler = MLIRTestProcessHandler(files, "folder") { _, _ -> count.incrementAndGet(); active }
+        val output = capture(handler)
+        handler.startNotify()
+        assertTrue(active.running.await(5, TimeUnit.SECONDS))
+        handler.destroyProcess()
+        assertTrue(handler.waitFor(5000))
+        assertEquals(1, count.get())
+        assertEquals(130, handler.exitCode)
+        assertEquals(3, Regex("##teamcity\\[testIgnored ").findAll(output).count())
+        assertFalse(output.contains("testFailed"))
+        assertTrue(output.contains("testSuiteFinished"))
+    }
+
     fun testCancellationStopsActivePipelineAndRemainingDirectives() {
         val file = RunCommandParser.parseComments((1..2).map { it to "// RUN: tool" }, "/tmp/test.mlir")
         val active = StubProcess(hold = true)

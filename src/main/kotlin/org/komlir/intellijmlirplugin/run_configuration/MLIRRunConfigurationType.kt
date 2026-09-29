@@ -12,8 +12,8 @@ import javax.swing.Icon
 class MLIRRunConfigurationType() : CMakeRunConfigurationType(
     "MLIR_RUN_CONFIGURATION",
     "MLIR_RUN_CONFIGURATION",
-    "MLIR File",
-    "Runs MLIR files",
+    "MLIR Tests",
+    "Runs MLIR files or folders",
     NotNullLazyValue.createConstantValue(MLIRIcons.FILE)
 ) {
 

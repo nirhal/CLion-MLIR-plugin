@@ -6,34 +6,58 @@ import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessOutputType
 import com.intellij.openapi.util.Key
 import com.intellij.util.concurrency.AppExecutorUtil
-import java.io.File
 import java.io.OutputStream
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** One file is one test. Pipelines run in order and stop at the first failure. */
+/** Files run sequentially; a failed directive stops its file, not the rest of the suite. */
 class MLIRTestProcessHandler(
-    private val test: RunCommandParser.TestFile,
-    private val launch: (RunCommandParser.Pipeline) -> ProcessHandler,
+    private val tests: List<MLIRTestDiscovery.TestCase>,
+    private val suiteName: String? = null,
+    private val launch: (MLIRTestDiscovery.TestCase, RunCommandParser.Pipeline) -> ProcessHandler,
 ) : ProcessHandler() {
+    constructor(test: RunCommandParser.TestFile, launch: (RunCommandParser.Pipeline) -> ProcessHandler) :
+        this(listOf(MLIRTestDiscovery.TestCase(test.path, java.io.File(test.path).name, test)), null,
+            { _, pipeline -> launch(pipeline) })
+
     private val cancelled = AtomicBoolean()
     private val started = AtomicBoolean()
     @Volatile private var active: ProcessHandler? = null
-    private val testName = File(test.path).name
 
     override fun startNotify() {
         super.startNotify()
-        if (started.compareAndSet(false, true)) AppExecutorUtil.getAppExecutorService().execute { runTest() }
+        if (started.compareAndSet(false, true)) AppExecutorUtil.getAppExecutorService().execute { runTests() }
     }
 
-    private fun runTest() {
+    private fun runTests() {
+        var code = 0
+        try {
+            message("testCount", "count" to tests.size.toString())
+            suiteName?.let { message("testSuiteStarted", "name" to it) }
+            for (test in tests) {
+                val result = runTest(test)
+                if (code == 0) code = result
+            }
+        } finally {
+            suiteName?.let { message("testSuiteFinished", "name" to it) }
+            notifyProcessTerminated(if (cancelled.get()) 130 else code)
+        }
+    }
+
+    private fun runTest(testCase: MLIRTestDiscovery.TestCase): Int {
+        val testName = testCase.name
+        val test = testCase.test
         val start = System.nanoTime()
         var code = 0
-        message("testStarted", "name" to testName, "locationHint" to "file://${test.path}:${test.pipelines.first().line}")
+        message("testStarted", "name" to testName, "locationHint" to "file://${testCase.path}:${test?.pipelines?.first()?.line ?: 1}")
         try {
-            for (pipeline in test.pipelines) {
+            if (!cancelled.get() && testCase.error != null) {
+                code = 1
+                message("testFailed", "name" to testName, "message" to "Invalid MLIR test", "details" to testCase.error)
+            }
+            for (pipeline in test?.pipelines.orEmpty()) {
                 if (cancelled.get()) break
                 message("testStdOut", "name" to testName, "out" to "RUN (line ${pipeline.line}): ${pipeline.source}\n")
-                val handler = launch(pipeline)
+                val handler = launch(testCase, pipeline)
                 active = handler
                 handler.addProcessListener(object : ProcessListener {
                     override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
@@ -67,8 +91,9 @@ class MLIRTestProcessHandler(
                 message("testIgnored", "name" to testName, "message" to "Cancelled by user")
             }
             message("testFinished", "name" to testName, "duration" to ((System.nanoTime() - start) / 1_000_000).toString())
-            notifyProcessTerminated(code)
+            // Terminate the aggregate handler only after all files have reported their results.
         }
+        return code
     }
 
     private fun message(type: String, vararg attributes: Pair<String, String>) {
