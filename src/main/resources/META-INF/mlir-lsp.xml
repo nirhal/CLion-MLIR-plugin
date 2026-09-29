@@ -1,0 +1,8 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <platform.lsp.serverSupportProvider implementation="org.komlir.intellijmlirplugin.lsp.MLIRLspServerSupportProvider"/>
+        <projectConfigurable parentId="language" id="mlir.languageServer" displayName="MLIR Language Server"
+                             instance="org.komlir.intellijmlirplugin.lsp.MLIRLanguageServerConfigurable"/>
+        <notificationGroup id="MLIR Language Server" displayType="BALLOON"/>
+    </extensions>
+</idea-plugin>

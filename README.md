@@ -9,6 +9,17 @@ An IntelliJ IDEA plugin adding MLIR (Multi-Level Intermediate Representation) la
 - **Lexer & Parser** – full PSI-based analysis, brace matching, and commenting
 - **Navigation** – find usages, resolve SSA values and symbols
 - **Custom Colors** – configurable in IDE settings
+- **Language Server** – optional project-specific MLIR LSP server for live editor diagnostics
+
+### MLIR language server
+
+In **Settings → Languages & Frameworks → MLIR Language Server**, enable the language server and choose either an executable path or a CMake executable target and profile. Use `mlir-lsp-server` for standard dialects, or a server that registers your project's custom dialects. An optimizer executable is not an LSP server.
+
+Paths can be absolute or relative to the project directory. Arguments, working directory, and environment overrides are configurable. Settings are stored locally in the project's workspace file. Opening a `.mlir` file starts one server for the project; CLion synchronizes unsaved edits and displays diagnostics supplied by the server. The existing syntax highlighting remains available.
+
+For CMake targets, **Build target before starting the server** optionally builds the selected target through CLion's Build window. **Build and restart** rebuilds the target and reloads open documents; use it after changing dialect definitions or verifiers. **Restart server** applies settings and restarts the process (and builds when build-before-start is enabled). CMake reloads also invalidate the server configuration. Failed preparation is reported through a notification and the settings status; correct the settings and restart to retry. The native Language Services widget shows running server status.
+
+This integration currently supports local toolchains. It requires an IDE with JetBrains' LSP module; CMake target selection additionally requires CLion's CMake support. Diagnostics validate the document, including deliberately invalid IR in negative tests; they do not execute `RUN` or FileCheck directives. The LSP API integration is built and tested against CLion 2026.1; other IDE versions need compatibility verification.
 
 ### CLion Extras
 - Adds run configs, play icons, and auto-generated execution setups for MLIR `RUN` directives (e.g., `// RUN: mlir-opt %s | filecheck %s`)

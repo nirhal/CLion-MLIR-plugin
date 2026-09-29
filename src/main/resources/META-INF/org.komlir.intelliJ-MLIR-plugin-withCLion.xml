@@ -1,4 +1,7 @@
 <idea-plugin>
+    <extensions defaultExtensionNs="org.komlir.intelliJ-MLIR-plugin">
+        <languageServerCMakeSupport implementation="org.komlir.intellijmlirplugin.lsp.cmake.MLIRCMakeLanguageServerSupport"/>
+    </extensions>
     <extensions defaultExtensionNs="com.intellij">
 
         <runLineMarkerContributor

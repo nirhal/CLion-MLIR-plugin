@@ -21,6 +21,13 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.lang</depends>
     <depends optional="true" config-file="org.komlir.intelliJ-MLIR-plugin-withCLion.xml">com.intellij.modules.clion</depends>
+    <depends optional="true" config-file="mlir-lsp.xml">com.intellij.modules.lsp</depends>
+
+    <extensionPoints>
+        <extensionPoint name="languageServerCMakeSupport"
+                        interface="org.komlir.intellijmlirplugin.lsp.MLIRLanguageServerCMakeSupport"
+                        dynamic="true"/>
+    </extensionPoints>
 
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
