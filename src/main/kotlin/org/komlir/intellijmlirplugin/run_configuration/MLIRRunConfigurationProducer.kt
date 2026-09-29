@@ -6,7 +6,6 @@ import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiDirectory
-import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.PsiComment
 import com.intellij.psi.util.PsiTreeUtil
 import org.komlir.intellijmlirplugin.MLIRLanguage
@@ -24,7 +23,7 @@ class MLIRRunConfigurationProducer : LazyRunConfigurationProducer<MLIRRunConfigu
     ): Boolean {
         val element = context.psiLocation ?: return false
         if (element is PsiDirectory) {
-            if (ProjectFileIndex.getInstance(configuration.project).isExcluded(element.virtualFile)) return false
+            if (!MLIRTestDiscovery.containsMlirFiles(configuration.project, element.virtualFile)) return false
             configuration.file = element.virtualFile.path
             configuration.name = "MLIR tests in ${element.name}"
             configuration.recursive = true
@@ -49,7 +48,8 @@ class MLIRRunConfigurationProducer : LazyRunConfigurationProducer<MLIRRunConfigu
         val element = context.psiLocation
         val path = (element as? PsiDirectory)?.virtualFile?.path
             ?: element?.containingFile?.virtualFile?.canonicalPath
-        return configuration.file != null && configuration.file == path
+        return configuration.file != null && configuration.file == path &&
+            (element !is PsiDirectory || MLIRTestDiscovery.containsMlirFiles(configuration.project, element.virtualFile))
     }
 
 }

@@ -14,6 +14,19 @@ import com.intellij.psi.util.PsiTreeUtil
 
 /** Discovery does not require lit configuration or a CMake model. */
 object MLIRTestDiscovery {
+    /** Context-menu eligibility: inspect names only and stop at the first MLIR file. */
+    fun containsMlirFiles(project: Project, root: VirtualFile): Boolean {
+        val index = ProjectFileIndex.getInstance(project)
+        fun visit(file: VirtualFile): Boolean {
+            ProgressManager.checkCanceled()
+            if (!file.isValid || index.isExcluded(file)) return false
+            if (!file.isDirectory) return file.extension == "mlir"
+            if (file != root && file.`is`(VFileProperty.SYMLINK)) return false
+            return file.children.any(::visit)
+        }
+        return visit(root)
+    }
+
     data class TestCase(val path: String, val name: String, val test: RunCommandParser.TestFile?, val error: String? = null) {
         val locationHint: String get() = "file://$path:${test?.pipelines?.first()?.line ?: 1}"
     }

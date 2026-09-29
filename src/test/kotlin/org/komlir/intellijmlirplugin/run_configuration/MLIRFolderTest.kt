@@ -18,6 +18,17 @@ class MLIRFolderTest : BasePlatformTestCase() {
     private fun configuration(path: String): MLIRRunConfiguration =
         MLIRRunConfiguration(project, MLIRRunConfigurationType().getFactory(), "MLIR folder").apply { file = path }
 
+    fun testFolderEligibilityUpdatesWhenMlirFilesAreAddedOrRemoved() {
+        val root = myFixture.addFileToProject("tests/nested/readme.txt", "No tests here").virtualFile.parent.parent
+        assertFalse(MLIRTestDiscovery.containsMlirFiles(project, root))
+        val file = myFixture.addFileToProject("tests/nested/input.mlir", "module {}\n").virtualFile
+        assertTrue(MLIRTestDiscovery.containsMlirFiles(project, root))
+        com.intellij.openapi.application.WriteAction.run<RuntimeException> { file.delete(this) }
+        assertFalse(MLIRTestDiscovery.containsMlirFiles(project, root))
+        myFixture.addFileToProject("tests/direct.mlir", "// RUN: tool\n")
+        assertTrue(MLIRTestDiscovery.containsMlirFiles(project, root))
+    }
+
     fun testRecursiveDiscoverySkipsFilesWithoutRunAndPreservesErrors() {
         val root = myFixture.addFileToProject("tests/a test.mlir", "// RUN: tool %s\n// RUN: tool --second\n").virtualFile.parent
         myFixture.addFileToProject("tests/nested/a test.mlir", "// RUN: tool %s\n")
@@ -40,6 +51,9 @@ class MLIRFolderTest : BasePlatformTestCase() {
         }
         try {
             assertEquals(listOf("visible.mlir"), MLIRTestDiscovery.discover(project, root.path).map { it.name })
+            assertFalse(MLIRTestDiscovery.containsMlirFiles(project, excluded))
+            com.intellij.openapi.application.WriteAction.run<RuntimeException> { root.findChild("visible.mlir")!!.delete(this) }
+            assertFalse(MLIRTestDiscovery.containsMlirFiles(project, root))
         } finally {
             ModuleRootModificationUtil.updateModel(module) { model ->
                 model.contentEntries.filter { it.file == root }.forEach { model.removeContentEntry(it) }
