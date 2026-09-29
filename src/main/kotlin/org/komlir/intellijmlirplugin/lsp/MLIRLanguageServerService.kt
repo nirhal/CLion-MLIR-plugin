@@ -27,6 +27,7 @@ class MLIRLanguageServerService(private val project: Project) : Disposable {
         private set
 
     init {
+        MLIRLspDiagnosticCleanup(project, this)
         MLIRLanguageServerCMakeSupport.get()?.subscribe(project, this) {
             if (project.service<MLIRLanguageServerSettings>().state.source == MLIRLanguageServerSettings.Source.CMAKE) restart()
         }

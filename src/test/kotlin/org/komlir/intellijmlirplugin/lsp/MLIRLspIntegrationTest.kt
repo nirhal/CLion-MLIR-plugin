@@ -61,6 +61,43 @@ class MLIRLspIntegrationTest : BasePlatformTestCase() {
         }
     }
 
+    fun testDisablingClearsExistingDiagnosticWithoutEditingAndReenableRestoresIt() {
+        withServer("// LSP_TEST_ERROR\nmodule {}\n") {
+            PlatformTestUtil.waitWithEventsDispatching("Server diagnostic did not reach the editor", {
+                myFixture.doHighlighting().any { it.description == "MLIR LSP integration diagnostic" }
+            }, 15)
+            val markup = com.intellij.openapi.editor.impl.DocumentMarkupModel.forDocument(
+                myFixture.editor.document, project, false)
+            fun hasDiagnostic() = markup.allHighlighters.any {
+                (it.errorStripeTooltip as? com.intellij.codeInsight.daemon.impl.HighlightInfo)
+                    ?.description == "MLIR LSP integration diagnostic"
+            }
+            assertTrue(hasDiagnostic())
+            val unrelated = markup.addRangeHighlighter(0, 1,
+                com.intellij.openapi.editor.markup.HighlighterLayer.WARNING, null,
+                com.intellij.openapi.editor.markup.HighlighterTargetArea.EXACT_RANGE)
+            try {
+                val originalText = myFixture.editor.document.text
+                val settings = project.service<MLIRLanguageServerSettings>()
+                settings.state.enabled = false
+                project.service<MLIRLanguageServerService>().restart()
+                // Inspect actual markup: doHighlighting() would force a new highlighting pass.
+                PlatformTestUtil.waitWithEventsDispatching("Disabled server left stale diagnostic markup", {
+                    !hasDiagnostic()
+                }, 15)
+                assertTrue("Unrelated editor highlighting must remain", unrelated.isValid)
+                assertEquals(originalText, myFixture.editor.document.text)
+                settings.state.enabled = true
+                project.service<MLIRLanguageServerService>().restart()
+                PlatformTestUtil.waitWithEventsDispatching("Reenabled server did not restore diagnostics", {
+                    hasDiagnostic()
+                }, 15)
+            } finally {
+                markup.removeHighlighter(unrelated)
+            }
+        }
+    }
+
     fun testOperationCompletionPrefersServerAndFallsBackForUnmatchedPrefix() {
         withServer("// LSP_TEST_ERROR\nmodule {}\n") {
             PlatformTestUtil.waitWithEventsDispatching("Document was not synchronized to the server", {
@@ -97,7 +134,8 @@ class MLIRLspIntegrationTest : BasePlatformTestCase() {
         val script = myFixture.tempDirFixture.createFile("server with spaces.py",
             javaClass.getResource("/lsp/server.py")!!.readText())
         val settings = project.service<MLIRLanguageServerSettings>()
-        settings.loadState(MLIRLanguageServerSettings.Options(enabled = true, executable = "/usr/bin/python3",
+        settings.loadState(MLIRLanguageServerSettings.Options(enabled = true,
+            source = MLIRLanguageServerSettings.Source.EXECUTABLE, executable = "/usr/bin/python3",
             arguments = ParametersListUtil.join(script.path), workingDirectory = myFixture.tempDirFixture.tempDirPath))
         val lifecycle = project.service<MLIRLanguageServerService>()
         val manager = LspServerManager.getInstance(project)

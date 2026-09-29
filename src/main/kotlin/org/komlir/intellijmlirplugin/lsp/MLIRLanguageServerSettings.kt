@@ -10,7 +10,7 @@ class MLIRLanguageServerSettings : PersistentStateComponent<MLIRLanguageServerSe
 
     data class Options(
         var enabled: Boolean = false,
-        var source: Source = Source.EXECUTABLE,
+        var source: Source = Source.CMAKE,
         var executable: String = "",
         var target: String = "",
         var profile: String = "",

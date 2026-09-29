@@ -133,7 +133,8 @@ class MLIRLanguageServerTest : BasePlatformTestCase() {
         val executable = myFixture.tempDirFixture.createFile("prepared-server")
         Path.of(executable.path).toFile().setExecutable(true)
         project.service<MLIRLanguageServerSettings>().loadState(MLIRLanguageServerSettings.Options(
-            enabled = true, executable = executable.path, workingDirectory = myFixture.tempDirFixture.tempDirPath))
+            enabled = true, source = MLIRLanguageServerSettings.Source.EXECUTABLE,
+            executable = executable.path, workingDirectory = myFixture.tempDirFixture.tempDirPath))
         val service = project.service<MLIRLanguageServerService>()
         val descriptors = mutableListOf<LspServerDescriptor>()
         val starter = object : LspServerSupportProvider.LspServerStarter {
