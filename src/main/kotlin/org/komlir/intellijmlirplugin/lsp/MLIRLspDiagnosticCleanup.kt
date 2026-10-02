@@ -12,7 +12,6 @@ import com.intellij.platform.lsp.api.LspServer
 import com.intellij.platform.lsp.api.LspServerManager
 import com.intellij.platform.lsp.api.LspServerManagerListener
 import com.intellij.platform.lsp.api.LspServerState
-import com.intellij.platform.lsp.impl.highlighting.LspHighlightingApplier
 import java.util.concurrent.ConcurrentHashMap
 
 /** Refresh native LSP markup after shutdown, when the stopped server has been removed. */
@@ -38,7 +37,7 @@ internal class MLIRLspDiagnosticCleanup(private val project: Project, parent: Di
                 // CLion 2026.1's ordinary daemon pass skips files with no LSP server.
                 // Use its native refresh to replace only LSP markup, retaining other
                 // inspections and any results from a newly started server.
-                val applier = LspHighlightingApplier.getInstance(project)
+                val applier = com.intellij.platform.lsp.impl.highlighting.LspHighlightingApplier.getInstance(project)
                 affected.filter { it.isValid }.forEach { applier.scheduleHighlightingRefresh(it) }
             }
         }, project.disposed)
