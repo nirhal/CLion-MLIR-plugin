@@ -1,7 +1,13 @@
 name: Release
 
 on:
-  workflow_dispatch: {}   # run only when triggered manually
+  workflow_dispatch:   # run only when triggered manually
+    inputs:
+      prerelease:
+        description: Mark this release as a pre-release
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write         # needed to create a release & upload assets
@@ -63,7 +69,7 @@ jobs:
           tag_name: v${{ steps.vars.outputs.version }}
           name: CLion-MLIR-Plugin v${{ steps.vars.outputs.version }}
           draft: false
-          prerelease: false
+          prerelease: ${{ inputs.prerelease }}
           files: ${{ steps.zip.outputs.path }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
