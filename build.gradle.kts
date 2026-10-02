@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "org.komlir"
-version = "0.1.4"
+version = "0.2.0"
 
 repositories {
     mavenCentral()
@@ -37,9 +37,17 @@ intellijPlatform {
         }
 
         changeNotes = """
-      - Fix API incompatibility with CLion 2026.1.1.
-      - Add support for the ellipsis token in the MLIR lexer.
-    """.trimIndent()
+            <h3>0.2.0</h3>
+            <ul>
+              <li>Run MLIR files and folders in CLion's test window, with nested folder suites, source navigation, and rerun failed tests.</li>
+              <li>Support multiple RUN directives, continued lines, quoted arguments, and pipelines with accurate failure and cancellation reporting.</li>
+              <li>Build required CMake test tools once per run using the selected profile, and preserve FileCheck output during single-file debugging.</li>
+              <li>Add optional project-level MLIR language server support using a CMake target or executable path, with build and restart controls.</li>
+              <li>Show live LSP diagnostics and operation hover information, and clear stale diagnostics when the server stops.</li>
+              <li>Integrate LSP operation, type, and SSA completion, preserving dialect and reference prefixes when inserting suggestions.</li>
+              <li>Prefer LSP operation suggestions when available and automatically show local symbol completion after typing @.</li>
+            </ul>
+        """.trimIndent()
     }
     buildSearchableOptions = false
 }
