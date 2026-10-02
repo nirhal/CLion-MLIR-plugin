@@ -1,6 +1,7 @@
 package org.komlir.intellijmlirplugin.lsp
 
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.application.impl.NonBlockingReadActionImpl
 import com.intellij.ide.trustedProjects.TrustedProjects
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -79,6 +80,7 @@ class MLIRLspIntegrationTest : BasePlatformTestCase() {
             try {
                 val originalText = myFixture.editor.document.text
                 val settings = project.service<MLIRLanguageServerSettings>()
+                NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
                 settings.state.enabled = false
                 project.service<MLIRLanguageServerService>().restart()
                 // Inspect actual markup: doHighlighting() would force a new highlighting pass.
@@ -215,12 +217,17 @@ class MLIRLspIntegrationTest : BasePlatformTestCase() {
             }, 15)
             assertEquals(1, servers().count { it.state == LspServerState.Running })
             check()
+            // Edits/completion can enqueue document reopen callbacks. Drain them while
+            // the server is still running, before testing its explicit shutdown.
+            NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
             settings.state.enabled = false
             lifecycle.restart()
             PlatformTestUtil.waitWithEventsDispatching("Server did not stop when disabled", {
                 servers().none { it.state == LspServerState.Running || it.state == LspServerState.Initializing }
             }, 15)
         } finally {
+            // Also drain pending document work if the test body failed before shutdown.
+            NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
             settings.loadState(MLIRLanguageServerSettings.Options())
             lifecycle.restart()
             PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()

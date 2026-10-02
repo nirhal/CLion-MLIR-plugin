@@ -53,6 +53,9 @@ intellijPlatform {
 }
 
 tasks {
+    withType<Test> {
+        testLogging.exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
     // Set the JVM compatibility versions
     withType<JavaCompile> {
         sourceCompatibility = "21"
