@@ -32,6 +32,7 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <typedHandler implementation="org.komlir.intellijmlirplugin.MLIRTypedHandler"/>
         <!-- Register MLIR file type -->
         <fileType name="MLIR"
                   implementationClass="org.komlir.intellijmlirplugin.MLIRFileType"
