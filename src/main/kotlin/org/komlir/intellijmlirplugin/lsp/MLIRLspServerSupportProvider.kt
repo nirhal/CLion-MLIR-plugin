@@ -28,6 +28,20 @@ class MLIRLspServerSupportProvider : LspServerSupportProvider {
 
 internal class MLIRLspServerDescriptor(project: Project, private val command: GeneralCommandLine) :
     ProjectWideLspServerDescriptor(project, "MLIR") {
+    @Volatile private var diagnosticCleanup: MLIRLspDiagnosticCleanup? = null
+
+    override fun createLsp4jClient(handler: LspServerNotificationsHandler): Lsp4jClient {
+        val cleanup = MLIRLspDiagnosticCleanup(handler)
+        diagnosticCleanup = cleanup
+        return object : Lsp4jClient(cleanup) {}
+    }
+
+    override val lspServerListener = object : LspServerListener {
+        override fun serverStopped(shutdownNormally: Boolean) {
+            diagnosticCleanup?.clear()
+        }
+    }
+
     override fun isSupportedFile(file: VirtualFile) = file.extension == "mlir"
     override fun getLanguageId(file: VirtualFile) = "mlir"
     override val lspCompletionSupport = object : LspCompletionSupport() {

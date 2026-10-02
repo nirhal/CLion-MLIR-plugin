@@ -1,45 +1,29 @@
-// CLion 2026.1 exposes no public API for refreshing the native LSP markup after shutdown.
-// Keep the compatibility workaround isolated here.
-@file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
-
 package org.komlir.intellijmlirplugin.lsp
 
-import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.platform.lsp.api.LspServer
-import com.intellij.platform.lsp.api.LspServerManager
-import com.intellij.platform.lsp.api.LspServerManagerListener
-import com.intellij.platform.lsp.api.LspServerState
-import java.util.concurrent.ConcurrentHashMap
+import com.intellij.platform.lsp.api.LspServerNotificationsHandler
+import org.eclipse.lsp4j.PublishDiagnosticsParams
 
-/** Refresh native LSP markup after shutdown, when the stopped server has been removed. */
-internal class MLIRLspDiagnosticCleanup(private val project: Project, parent: Disposable) : LspServerManagerListener {
-    private val files = ConcurrentHashMap<LspServer, MutableSet<VirtualFile>>()
+/** Tracks one client's diagnostics and clears them through the native notification pipeline. */
+internal class MLIRLspDiagnosticCleanup(
+    private val delegate: LspServerNotificationsHandler,
+) : LspServerNotificationsHandler by delegate {
+    private val uris = mutableSetOf<String>()
+    private var stopped = false
 
-    init {
-        LspServerManager.getInstance(project).addLspServerManagerListener(this, parent)
+    @Synchronized
+    override fun publishDiagnostics(params: PublishDiagnosticsParams) {
+        // A notification already in flight must not restore diagnostics after shutdown.
+        if (stopped) return
+        uris.add(params.uri)
+        delegate.publishDiagnostics(params)
     }
 
-    override fun diagnosticsReceived(lspServer: LspServer, file: VirtualFile) {
-        if (lspServer.providerClass == MLIRLspServerSupportProvider::class.java) {
-            files.computeIfAbsent(lspServer) { ConcurrentHashMap.newKeySet() }.add(file)
-        }
-    }
-
-    override fun serverStateChanged(lspServer: LspServer) {
-        if (lspServer.state != LspServerState.ShutdownNormally &&
-            lspServer.state != LspServerState.ShutdownUnexpectedly) return
-        val affected = files.remove(lspServer) ?: return
-        ApplicationManager.getApplication().invokeLater({
-            if (!project.isDisposed) {
-                // CLion 2026.1's ordinary daemon pass skips files with no LSP server.
-                // Use its native refresh to replace only LSP markup, retaining other
-                // inspections and any results from a newly started server.
-                val applier = com.intellij.platform.lsp.impl.highlighting.LspHighlightingApplier.getInstance(project)
-                affected.filter { it.isValid }.forEach { applier.scheduleHighlightingRefresh(it) }
-            }
-        }, project.disposed)
+    @Synchronized
+    fun clear() {
+        if (stopped) return
+        stopped = true
+        // Omit the version: cleanup also applies after unsaved edits or document closure.
+        uris.forEach { delegate.publishDiagnostics(PublishDiagnosticsParams(it, emptyList())) }
+        uris.clear()
     }
 }

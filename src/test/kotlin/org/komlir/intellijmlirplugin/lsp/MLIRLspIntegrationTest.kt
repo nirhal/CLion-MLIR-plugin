@@ -124,6 +124,47 @@ class MLIRLspIntegrationTest : BasePlatformTestCase() {
         }
     }
 
+    fun testUnexpectedServerExitClearsDiagnosticWithoutEditing() {
+        withServer("// LSP_TEST_ERROR\nmodule {}\n") {
+            waitForDiagnostic()
+            NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
+            val server = LspServerManager.getInstance(project)
+                .getServersForProvider(MLIRLspServerSupportProvider::class.java).single()
+            // Exit without a shutdown request, simulating an unexpected process termination.
+            server.sendNotification { it.exit() }
+            PlatformTestUtil.waitWithEventsDispatching("Exited server left stale diagnostic markup", {
+                server.state == LspServerState.ShutdownUnexpectedly && !hasDiagnosticMarkup()
+            }, 15)
+        }
+    }
+
+    fun testRestartKeepsNewServerDiagnostics() {
+        withServer("// LSP_TEST_ERROR\nmodule {}\n") {
+            waitForDiagnostic()
+            NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
+            val manager = LspServerManager.getInstance(project)
+            val oldServer = manager.getServersForProvider(MLIRLspServerSupportProvider::class.java).single()
+            project.service<MLIRLanguageServerService>().restart()
+            PlatformTestUtil.waitWithEventsDispatching("Restart did not replace the server and restore diagnostics", {
+                oldServer.state == LspServerState.ShutdownNormally &&
+                    manager.getServersForProvider(MLIRLspServerSupportProvider::class.java)
+                        .any { it !== oldServer && it.state == LspServerState.Running } && hasDiagnosticMarkup()
+            }, 15)
+        }
+    }
+
+    private fun waitForDiagnostic() {
+        PlatformTestUtil.waitWithEventsDispatching("Server diagnostic did not reach the editor", {
+            myFixture.doHighlighting().any { it.description == "MLIR LSP integration diagnostic" }
+        }, 15)
+    }
+
+    private fun hasDiagnosticMarkup() = com.intellij.openapi.editor.impl.DocumentMarkupModel.forDocument(
+        myFixture.editor.document, project, false).allHighlighters.any {
+        (it.errorStripeTooltip as? com.intellij.codeInsight.daemon.impl.HighlightInfo)
+            ?.description == "MLIR LSP integration diagnostic"
+    }
+
     fun testTypeCompletionPreservesSigilAndBuiltinTypes() {
         withServer("// LSP_TEST_ERROR\nmodule {}\n") {
             PlatformTestUtil.waitWithEventsDispatching("Document was not synchronized to the server", {
